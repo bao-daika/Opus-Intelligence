@@ -1,15 +1,16 @@
 // --- OPUS CONFIGURATION & INTEGRATED BRAIN (2027 SYNC) ---
 
 // 1. CẤU HÌNH MENU & GIAO DIỆN
+// Trong config.js
 const menuConfig = [
-    { id: "urban", label: "Urban Landscapes", icon: "building", type: "category" },
-    { id: "landscape", label: "Nature & Wild", icon: "mountain-snow", type: "category" },
-    { id: "vlog", label: "Vlog Hotspots", icon: "trending-up", type: "category" }
+    { id: "urban", label: "URBAN", icon: "building", type: "category" }, // Đổi từ "Urban Landscapes" thành "URBAN"
+    { id: "nature", label: "NATURE", icon: "mountain-snow", type: "category" },
+    { id: "vlog", label: "VLOG", icon: "trending-up", type: "category" }
 ];
 
 const markerColors = { 
     urban: "#fbbf24", 
-    landscape: "#10b981", 
+    nature: "#10b981", 
     vlog: "#ff0050" 
 };
 
