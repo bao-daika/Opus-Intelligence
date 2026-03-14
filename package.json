@@ -6,14 +6,15 @@
   "main": "api/chat.js",
   "scripts": {
     "start": "vercel dev",
+    "build": "npm install", 
     "deploy": "vercel --prod"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "firebase-admin": "^11.11.1"
+    "firebase-admin": "^12.0.0" 
   },
   "engines": {
-    "node": ">=18.x"
+    "node": "20.x" 
   },
   "author": "Bao Luoi",
   "license": "MIT"
