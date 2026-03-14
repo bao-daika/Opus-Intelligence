@@ -1,0 +1,20 @@
+{
+  "name": "opus-map-luxury",
+  "version": "1.1.0",
+  "description": "Opus-Map: Luxury Travel & Photography Guide powered by Gemini 3.1",
+  "type": "module",
+  "main": "api/chat.js",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "firebase-admin": "^11.11.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "author": "Bao Luoi",
+  "license": "MIT"
+}
