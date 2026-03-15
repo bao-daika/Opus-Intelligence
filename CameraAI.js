@@ -1,19 +1,14 @@
 // --- OPUS CAMERA AI SYSTEM 2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp
-// STATUS: 100% ORIGINAL LOGIC + STAMP RELIABILITY ENHANCEMENT
+// STATUS: 100% ORIGINAL LOGIC + ANTI-SPAM UX ENHANCEMENT
 
 let isFlashOn = false;
 let currentZoom = 1;
 let videoTrack = null;
 let userCoords = null;
 
-// Lắng nghe định vị ngay khi khởi động để sẵn sàng cho Stamp
-if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(
-        (p) => { userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
-        null, { enableHighAccuracy: true }
-    );
-}
+// [REFINED 2027] Xóa bỏ lắng nghe tự động để tránh làm phiền người dùng.
+// Vị trí sẽ chỉ được yêu cầu khi Sếp thực sự kích hoạt AI Lens.
 
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
@@ -21,6 +16,18 @@ window.activateAILens = async () => {
     container.style.display = 'block';
     isFlashOn = false; 
     currentZoom = 1; 
+    
+    // [ELITE UPDATE] Chỉ hỏi vị trí 1 lần duy nhất khi vào Lens
+    if (navigator.geolocation && !userCoords) {
+        navigator.geolocation.getCurrentPosition(
+            (p) => { 
+                userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;
+                console.log("Opus Logic: Location Verified.");
+            },
+            null, 
+            { enableHighAccuracy: true }
+        );
+    }
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -121,7 +128,6 @@ window.capturePhoto = () => {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
 
-    // 1. TỐI ƯU PHÔNG CHỮ: Kiểm tra Inter, nếu không có dùng font hệ thống Elite
     const fontElite = "italic 300 " + fontSize + "px 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', sans-serif";
     ctx.font = fontElite;
     ctx.fillStyle = "white";
@@ -134,7 +140,6 @@ window.capturePhoto = () => {
     ctx.letterSpacing = "4px";
     ctx.fillText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 1.8));
 
-    // 2. XỬ LÝ DÒNG 3: Luôn đầy đặn Vibe 2027
     ctx.shadowBlur = 5;
     ctx.font = "500 " + (fontSize * 0.6) + "px monospace";
     ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
@@ -170,23 +175,16 @@ window.capturePhoto = () => {
 // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA - MÃ HÓA MÙ PROTECTED) ---
 
 (function(_0xOpus){
-    // Chặn chuột phải
     document.addEventListener('contextmenu', _ => _.preventDefault());
-    
-    // Chặn phím tắt DevTools & View Source
     document.onkeydown = function(e) {
         if (e.keyCode == 123 || 
             (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
             (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
         ) return false;
     };
-    
-    // Chặn kéo thả tài sản trí tuệ
     document.addEventListener('dragstart', e => { 
         if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); 
     });
-    
-    // Chặn PrintScreen & Clear Clipboard
     document.addEventListener('keyup', e => { 
         if(e.key === 'PrintScreen') { 
             navigator.clipboard.writeText(''); 

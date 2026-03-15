@@ -249,17 +249,44 @@
         const getAllSpots = () => [...(typeof urbanSpots!=='undefined'?urbanSpots:[]), ...(typeof natureSpots!=='undefined'?natureSpots:[]), ...(typeof vlogSpots!=='undefined'?vlogSpots:[])];
 
         function renderMarkers() {
-            markerClusterGroup.clearLayers();
-            const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
-            const newMarkers = filtered.map(spot => {
-                const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
-                const mediaHtml = spot.videoUrl ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` : `<img src="${spot.imageUrl}">`;
-                const popupContent = `<div class="text-white"><div class="popup-media-container">${mediaHtml}</div><div class="p-4"><p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p><h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3><button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">Explore</button></div></div>`;
-                return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
-            });
-            if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
-            map.invalidateSize();
+    markerClusterGroup.clearLayers();
+    const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
+    
+    const newMarkers = filtered.map(spot => {
+        const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
+
+        // --- LOGIC MỚI: CHỈ LẤY HÌNH ĐẦU TIÊN ĐỂ PREVIEW ---
+        // Ưu tiên: 1. Video (nếu có) | 2. Hình đầu tiên trong mảng images | 3. Hình đơn imageUrl cũ
+        let previewImage = "";
+        if (spot.images && spot.images.length > 0) {
+            previewImage = spot.images[0]; // Chỉ lấy tấm đầu tiên thưa Sếp!
+        } else {
+            previewImage = spot.imageUrl;
         }
+
+        const mediaHtml = spot.videoUrl 
+            ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` 
+            : `<img src="${previewImage}" class="no-select">`;
+        // --------------------------------------------------
+
+        const popupContent = `
+            <div class="text-white">
+                <div class="popup-media-container">${mediaHtml}</div>
+                <div class="p-4">
+                    <p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p>
+                    <h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3>
+                    <button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">
+                        Explore Masterpiece
+                    </button>
+                </div>
+            </div>`;
+            
+        return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
+    });
+    
+    if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
+    map.invalidateSize();
+}
 
         function renderMenu() {
             if (typeof menuConfig === 'undefined') return;

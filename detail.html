@@ -2,16 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Opus | Masterpiece Detail</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; }
-        .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
+        body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; user-select: none; -webkit-user-select: none; }
+        .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
         
-        /* CĂN CHỈNH LOGIC MỚI: THẲNG HÀNG NÚT ATMOSPHERE & ĐẨY LÊN TRÊN */
+        /* MŨI TÊN ĐIỀU HƯỚNG ELITE */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            width: 60px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(251, 191, 36, 0.4);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        .nav-arrow:hover {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.05);
+        }
+        .nav-arrow.disabled {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .arrow-left { left: 0; border-radius: 0 20px 20px 0; }
+        .arrow-right { right: 0; border-radius: 20px 0 0 20px; }
+
+        /* PHOTO STAGE LOGIC */
         .photo-stage { 
             height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden;
             display: flex; justify-content: center;
@@ -21,19 +48,18 @@
         .slide-item { 
             min-width: 100vw; height: 100vh; 
             display: flex; 
-            justify-content: center; /* Thẳng hàng tuyệt đối với center-lock */
-            align-items: flex-start; /* Đẩy lên trên theo ý Sếp */
-            padding-top: 100px; /* Khoảng đệm dưới nút Atmosphere */
+            justify-content: center; 
+            align-items: flex-start; 
+            padding-top: 100px; 
         }
         
         .master-img { 
-            max-width: 90%; max-height: 75vh; /* Giới hạn để lộ phần info bên dưới */
+            max-width: 90%; max-height: 75vh; 
             object-fit: contain; z-index: 1; 
             box-shadow: 0 20px 80px rgba(0,0,0,0.9); 
             display: block; 
         }
 
-        /* KHÓA NÚT ATMOSPHERE VÀO GIỮA MÀN HÌNH */
         .center-lock {
             position: absolute;
             left: 50%;
@@ -73,6 +99,17 @@
         let isPlaying = false;
         let atmosphereAudio = null;
 
+        // --- KHỞI TẠO DATA ---
+        const spot = JSON.parse(localStorage.getItem("selectedSpot"));
+        if(!spot) { window.location.href = "index.html"; }
+
+        // SẾP FIX: CHỈ XÀI IMAGES - LOẠI BỎ imageUrl HOÀN TOÀN
+        const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
+        let currentSlide = 0;
+
+        // URL dẫn đường 2027
+        const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
+
         const toggleVibe = () => {
             if (!atmosphereAudio) return;
             if (!isPlaying) {
@@ -88,14 +125,6 @@
             }
             if(window.lucide) lucide.createIcons();
         };
-
-        const spot = JSON.parse(localStorage.getItem("selectedSpot"));
-        if(!spot) { window.location.href = "index.html"; }
-
-        const photoGallery = spot.images || [spot.imageUrl];
-        let currentSlide = 0;
-
-        const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
         const renderPage = () => {
             const container = document.getElementById('app-interface');
@@ -132,6 +161,10 @@
                     </div>
 
                     <div class="photo-stage" id="stage">
+                        <div id="arrow-prev" class="nav-arrow arrow-left disabled" onclick="changeSlide(-1)">
+                            <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                        </div>
+
                         <div class="slider-container" id="main-slider">
                             ${photoGallery.map(img => `
                                 <div class="slide-item">
@@ -139,6 +172,11 @@
                                 </div>
                             `).join('')}
                         </div>
+
+                        <div id="arrow-next" class="nav-arrow arrow-right ${photoGallery.length <= 1 ? 'disabled' : ''}" onclick="changeSlide(1)">
+                            <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                        </div>
+
                         ${photoGallery.length > 1 ? `
                             <div class="slider-nav">
                                 ${photoGallery.map((_, i) => `<div class="nav-dot ${i===0?'active':''}" onclick="goToSlide(${i})"></div>`).join('')}
@@ -220,24 +258,37 @@
             if(window.lucide) lucide.createIcons();
         };
 
+        window.changeSlide = (direction) => {
+            const nextIdx = currentSlide + direction;
+            if (nextIdx >= 0 && nextIdx < photoGallery.length) {
+                goToSlide(nextIdx);
+            }
+        };
+
         window.goToSlide = (index) => {
             currentSlide = index;
             const slider = document.getElementById('main-slider');
             const dots = document.querySelectorAll('.nav-dot');
+            const arrowPrev = document.getElementById('arrow-prev');
+            const arrowNext = document.getElementById('arrow-next');
+
             if(slider) slider.style.transform = `translateX(-${currentSlide * 100}vw)`;
             dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
+
+            if(arrowPrev) currentSlide === 0 ? arrowPrev.classList.add('disabled') : arrowPrev.classList.remove('disabled');
+            if(arrowNext) currentSlide === photoGallery.length - 1 ? arrowNext.classList.add('disabled') : arrowNext.classList.remove('disabled');
         };
 
         function initSwipe() {
             let startX = 0;
             const stage = document.getElementById('stage');
             if(!stage) return;
-            stage.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+            stage.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
             stage.addEventListener('touchend', e => {
                 let endX = e.changedTouches[0].clientX;
                 if (startX - endX > 50 && currentSlide < photoGallery.length - 1) goToSlide(currentSlide + 1);
                 if (endX - startX > 50 && currentSlide > 0) goToSlide(currentSlide - 1);
-            });
+            }, {passive: true});
         }
 
         window.handlePost = () => {
@@ -247,9 +298,10 @@
             document.getElementById('user-comment').value = "";
         };
 
-        renderPage();
+        // Khởi động trang
+        window.onload = renderPage;
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
