@@ -5,30 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Opus | Masterpiece Detail</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; }
         .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
         
-        /* CẮN GIỮA HÌNH JPG HOÀN HẢO */
+        /* CĂN CHỈNH LOGIC MỚI: THẲNG HÀNG NÚT ATMOSPHERE & ĐẨY LÊN TRÊN */
         .photo-stage { 
             height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden;
-            display: flex; align-items: center; justify-content: center; /* Căn giữa container chính */
+            display: flex; justify-content: center;
         }
         .slider-container { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        
         .slide-item { 
             min-width: 100vw; height: 100vh; 
-            display: flex; align-items: center; justify-content: center; /* Căn giữa item con */
-            padding: 20px; 
+            display: flex; 
+            justify-content: center; /* Thẳng hàng tuyệt đối với center-lock */
+            align-items: flex-start; /* Đẩy lên trên theo ý Sếp */
+            padding-top: 100px; /* Khoảng đệm dưới nút Atmosphere */
         }
+        
         .master-img { 
-            max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; 
-            box-shadow: 0 0 100px rgba(0,0,0,0.8); 
-            /* Đảm bảo hình nằm giữa tuyệt đối */
-            margin: auto; display: block; 
+            max-width: 90%; max-height: 75vh; /* Giới hạn để lộ phần info bên dưới */
+            object-fit: contain; z-index: 1; 
+            box-shadow: 0 20px 80px rgba(0,0,0,0.9); 
+            display: block; 
+        }
+
+        /* KHÓA NÚT ATMOSPHERE VÀO GIỮA MÀN HÌNH */
+        .center-lock {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 60;
         }
 
         .slider-nav { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 30; }
@@ -38,14 +51,12 @@
         .info-section { background: #020617; min-height: 50vh; position: relative; z-index: 20; border-top: 1px solid rgba(251, 191, 36, 0.1); }
         .title-minimal { font-size: clamp(1.5rem, 5vw, 3.5rem); font-weight: 200; letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; }
         .comment-node { border-left: 1px solid rgba(251, 191, 36, 0.1); padding-left: 1.5rem; margin-bottom: 2rem; }
-        .author-badge { background: linear-gradient(90deg, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
         .no-select { pointer-events: none; user-select: none; -webkit-user-drag: none; }
         
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 10px; }
 
-        /* Animation cho nút Vibe của Sếp */
         .vibe-pulse { animation: vibe-glow 2s infinite; }
         @keyframes vibe-glow {
             0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
@@ -59,7 +70,6 @@
     <div id="app-interface"></div>
 
     <script>
-        // --- ENGINE ÂM THANH CỦA SẾP ---
         let isPlaying = false;
         let atmosphereAudio = null;
 
@@ -69,56 +79,57 @@
                 atmosphereAudio.play();
                 isPlaying = true;
                 document.getElementById('vibe-btn').classList.add('vibe-pulse', 'bg-yellow-500/20');
-                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="pause-circle" class="w-4 h-4 mr-2"></i>';
+                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="pause-circle" class="w-3 h-3 mr-2"></i>';
             } else {
                 atmosphereAudio.pause();
                 isPlaying = false;
                 document.getElementById('vibe-btn').classList.remove('vibe-pulse', 'bg-yellow-500/20');
-                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="music" class="w-4 h-4 mr-2"></i>';
+                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="music" class="w-3 h-3 mr-2"></i>';
             }
             if(window.lucide) lucide.createIcons();
         };
 
-        // 1. DỮ LIỆU ĐẦU VÀO
         const spot = JSON.parse(localStorage.getItem("selectedSpot"));
         if(!spot) { window.location.href = "index.html"; }
 
         const photoGallery = spot.images || [spot.imageUrl];
         let currentSlide = 0;
 
-        // 2. ĐỊNH VỊ TOÀN CẦU
         const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
         const renderPage = () => {
             const container = document.getElementById('app-interface');
-            
-            // KIỂM TRA NHẠC ĐỂ HIỆN NÚT VIBE
             const hasAudio = spot.audioUrl && spot.audioUrl.trim() !== "";
+            
             if(hasAudio) {
                 atmosphereAudio = new Audio(spot.audioUrl);
-                atmosphereAudio.loop = false;
+                atmosphereAudio.loop = true;
             }
 
             container.innerHTML = `
                 <div class="flex flex-col relative">
-                    <div class="fixed top-0 left-0 w-full p-6 flex justify-between items-center z-50 pointer-events-none">
-                        <button onclick="window.history.back()" class="glass px-6 py-2 rounded-full font-bold text-[10px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto">
-                            ← Back
-                        </button>
+                    <div class="fixed top-0 left-0 w-full z-50 p-4 md:p-6 flex items-center justify-between pointer-events-none">
+                        <div class="flex-1 flex justify-start">
+                            <button onclick="window.history.back()" class="glass px-4 py-2 rounded-full font-bold text-[9px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto border border-yellow-500/20">
+                                ← Back
+                            </button>
+                        </div>
 
-                        <div class="glass px-6 py-2 rounded-full font-bold text-[9px] text-white/30 uppercase tracking-[0.4em]">
-                            Opus Insight
+                        <div class="center-lock pointer-events-auto">
+                            ${hasAudio ? `
+                            <button id="vibe-btn" onclick="toggleVibe()" class="glass px-5 py-2 rounded-full font-bold text-[9px] text-yellow-500 uppercase tracking-widest active:scale-95 transition flex items-center border border-yellow-500/40">
+                                <span id="vibe-icon"><i data-lucide="music" class="w-3 h-3 mr-2"></i></span>
+                                Atmosphere
+                            </button>
+                            ` : ''}
+                        </div>
+
+                        <div class="flex-1 flex justify-end">
+                            <div class="glass px-4 py-2 rounded-full font-bold text-[8px] text-white/30 uppercase tracking-[0.3em] border border-white/5 pointer-events-auto">
+                                Opus Insight
+                            </div>
                         </div>
                     </div>
-
-                    ${hasAudio ? `
-                    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                        <button id="vibe-btn" onclick="toggleVibe()" class="glass px-6 py-2 rounded-full font-bold text-[10px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto flex items-center border border-yellow-500/30">
-                            <span id="vibe-icon"><i data-lucide="music" class="w-4 h-4 mr-2"></i></span>
-                            Atmosphere
-                        </button>
-                    </div>
-                    ` : ''}
 
                     <div class="photo-stage" id="stage">
                         <div class="slider-container" id="main-slider">
@@ -128,66 +139,75 @@
                                 </div>
                             `).join('')}
                         </div>
-
                         ${photoGallery.length > 1 ? `
                             <div class="slider-nav">
                                 ${photoGallery.map((_, i) => `<div class="nav-dot ${i===0?'active':''}" onclick="goToSlide(${i})"></div>`).join('')}
                             </div>
                         ` : ''}
-                        </div>
                     </div>
 
                     <div class="info-section p-8 md:p-20">
                         <div class="max-w-5xl mx-auto">
-                            <div class="grid md:grid-cols-2 gap-16 items-start mb-32">
+                            <div class="grid md:grid-cols-2 gap-12 md:gap-16 items-start mb-24 md:mb-32">
                                 <div class="space-y-6">
                                     <p class="text-yellow-500 font-black tracking-[0.4em] uppercase text-[10px]">${spot.category}</p>
                                     <h1 class="title-minimal italic">${spot.name}</h1>
                                     <div class="h-[1px] w-24 bg-yellow-500/30"></div>
                                     <p class="text-white/50 leading-relaxed text-sm max-w-md font-light">
-                                        ${spot.description || "Captured at the intersection of reality and art."}
+                                        ${spot.description || spot.Description || "Captured at the intersection of reality and art."}
                                     </p>
                                 </div>
 
                                 <div class="space-y-10">
-                                    <div class="flex justify-between items-center border-b border-white/5 pb-8">
+                                    <div class="flex justify-between items-start border-b border-white/5 pb-8">
                                         <div>
                                             <p class="text-[8px] text-white/40 uppercase tracking-widest mb-1 font-bold">Hardware</p>
                                             <p class="text-sm font-light text-white/90">${spot.camera || 'Leica M11-P'}</p>
                                         </div>
                                         <div class="text-right">
-                                            <p class="text-[8px] text-white/40 uppercase tracking-widest mb-1 font-bold">Coordinates</p>
-                                            <p class="text-sm font-mono text-yellow-500/80">${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}</p>
+                                            <p class="text-[8px] text-yellow-500/60 uppercase tracking-widest mb-1 font-bold">Collector's Price</p>
+                                            <p class="text-xl font-light text-yellow-500">${spot.price || 'Priceless'}</p>
                                         </div>
                                     </div>
+                                    
+                                    <div class="flex justify-between items-center border-b border-white/5 pb-8">
+                                        <div>
+                                            <p class="text-[8px] text-white/40 uppercase tracking-widest mb-1 font-bold">Coordinates</p>
+                                            <p class="text-sm font-mono text-white/70">${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}</p>
+                                        </div>
+                                        <div class="text-right">
+                                             <p class="text-[8px] text-white/40 uppercase tracking-widest mb-1 font-bold">Status</p>
+                                             <p class="text-[10px] text-green-500 uppercase tracking-widest">Available</p>
+                                        </div>
+                                    </div>
+
                                     <a href="${navUrl}" target="_blank" class="block w-full border border-yellow-500/50 hover:bg-yellow-500 hover:text-black text-yellow-500 py-6 rounded-2xl font-black text-center text-[10px] tracking-[0.4em] transition-all uppercase active:scale-95">
                                         Open in Navigation
                                     </a>
                                 </div>
                             </div>
 
-                            <div class="mt-20">
-                                <div class="flex items-center gap-4 mb-16">
+                            <div class="mt-10">
+                                <div class="flex items-center gap-4 mb-12">
                                     <h2 class="text-[10px] font-black text-yellow-500 uppercase tracking-[0.6em]">Artist Discussion</h2>
                                     <div class="flex-1 h-[1px] bg-white/5"></div>
                                 </div>
-                                
-                                <div id="comment-list" class="space-y-12">
+                                <div id="comment-list" class="space-y-10">
                                     <div class="comment-node">
                                         <div class="flex items-center gap-3 mb-3">
-                                            <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">F</div>
-                                            <span class="text-[9px] text-white/50 uppercase tracking-tighter">Elite_Member_88</span>
+                                            <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">E</div>
+                                            <span class="text-[9px] text-white/50 uppercase tracking-tighter">Elite Member Bao</span>
                                         </div>
-                                        <p class="text-sm text-white/70 font-light ml-9">Góc này lướt sang ảnh thứ 2 thấy ánh sáng đổ đẹp quá!</p>
+                                        <p class="text-sm text-white/70 font-light ml-9">Du ma !!! Chụp đẹp quá vậy ???</p>
                                     </div>
                                 </div>
 
-                                <div class="mt-24 p-10 glass rounded-[40px] border border-white/5 group focus-within:border-yellow-500/40 transition-all">
-                                    <textarea id="user-comment" placeholder="Leave an elite insight..." class="w-full bg-transparent border-none text-sm font-light text-white outline-none resize-none h-24 placeholder:text-white/10" maxlength="200"></textarea>
-                                    <div class="flex justify-between items-center mt-6 pt-6 border-t border-white/5">
-                                        <span class="text-[8px] text-white/20 uppercase tracking-[0.2em]">Validated by Opus Intelligence</span>
-                                        <button onclick="handlePost()" class="px-8 py-3 bg-white/5 hover:bg-yellow-500 hover:text-black rounded-full text-[9px] font-black uppercase tracking-widest transition-all">
-                                            Post Comment
+                                <div class="mt-16 p-6 md:p-10 glass rounded-[30px] border border-white/5 group focus-within:border-yellow-500/40 transition-all">
+                                    <textarea id="user-comment" placeholder="Leave an elite insight..." class="w-full bg-transparent border-none text-sm font-light text-white outline-none resize-none h-20 placeholder:text-white/10" maxlength="200"></textarea>
+                                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
+                                        <span class="text-[7px] text-white/20 uppercase tracking-[0.2em]">Validated by Opus-Map</span>
+                                        <button onclick="handlePost()" class="px-6 py-2 bg-white/5 hover:bg-yellow-500 hover:text-black rounded-full text-[8px] font-black uppercase tracking-widest transition-all">
+                                            Post
                                         </button>
                                     </div>
                                 </div>
@@ -229,7 +249,7 @@
 
         renderPage();
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA) ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
