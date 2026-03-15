@@ -256,7 +256,7 @@ window.sendMessage = async (overrideText = null) => {
     window.clearPreview();
 
     const loadingId = "loading-" + Date.now();
-    addChatMessageUI("Mentor is thinking...", false, loadingId);
+    addChatMessageUI("Assistant is thinking...", false, loadingId);
 
     try {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
@@ -269,7 +269,6 @@ window.sendMessage = async (overrideText = null) => {
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
             loadingElement.classList.remove('animate-pulse', 'italic');
-            loadingElement.innerHTML = `<div class="text-[10px] text-yellow-500 font-black mb-1 uppercase tracking-widest">Mentor</div><div class="text-[11px] leading-relaxed">${reply}</div>`; 
         }
     } catch (error) {
         const loadingElement = document.getElementById(loadingId);
