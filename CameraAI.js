@@ -1,71 +1,113 @@
 // --- OPUS CAMERA AI SYSTEM 2027 ---
-// Quản lý độc lập luồng phần cứng, xử lý ảnh và hệ thống Flash vật lý
+// Quản lý: Hardware Flash, Digital Zoom, Auto-Save
 
 let isFlashOn = false;
+let currentZoom = 1;
+let videoTrack = null;
 
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
     const video = document.getElementById('camera-feed');
     container.style.display = 'block';
     isFlashOn = false; 
+    currentZoom = 1; // Reset zoom khi mở lại
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 facingMode: "environment", 
-                // Tối ưu nhẹ độ phân giải để Mobile không bị "sốc" nhiệt
-                width: { ideal: 1280 }, 
-                height: { ideal: 720 } 
+                width: { ideal: 1920 },
+                height: { ideal: 1080 } 
             } 
         });
         video.srcObject = stream;
-        document.getElementById('ai-suggestion').innerText = "AI Lens: Detecting cinematic depth...";
+        videoTrack = stream.getVideoTracks()[0];
+        
+        document.getElementById('ai-suggestion').innerText = "AI Lens: Zoom & Flash Active";
+        
+        // Kích hoạt Zoom bằng bánh xe chuột hoặc kéo trên mobile
+        setupZoomInteractions(video);
+
         if(window.lucide) lucide.createIcons();
     } catch (err) { 
-        alert("Sếp ơi, hãy cấp quyền Camera!"); 
+        alert("Sếp ơi, Mentor cần quyền Camera!"); 
         window.stopAILens(); 
     }
 };
 
+// --- LOGIC ZOOM THỜI ĐẠI 2027 ---
+function setupZoomInteractions(videoElement) {
+    if (!videoTrack) return;
+    const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+    
+    // Kiểm tra xem thiết bị có hỗ trợ Zoom phần cứng không
+    if (!capabilities.zoom) {
+        console.warn("Opus Info: Thiết bị không hỗ trợ Zoom phần cứng.");
+        return;
+    }
+
+    // Lắng nghe sự kiện cuộn (Wheel) để Zoom
+    videoElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        let zoomStep = capabilities.zoom.step || 0.1;
+        if (e.deltaY < 0) currentZoom += zoomStep * 2;
+        else currentZoom -= zoomStep * 2;
+        
+        applyZoom();
+    });
+}
+
+async function applyZoom() {
+    if (!videoTrack) return;
+    const capabilities = videoTrack.getCapabilities();
+    const min = capabilities.zoom.min || 1;
+    const max = capabilities.zoom.max || 5;
+
+    currentZoom = Math.min(Math.max(currentZoom, min), max);
+    
+    try {
+        await videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+        document.getElementById('ai-suggestion').innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`;
+    } catch (e) {
+        console.error("Zoom Error:", e);
+    }
+}
+
+// Sếp có thể gọi hàm này từ các nút ngoài giao diện nếu muốn
+window.setZoom = (value) => {
+    currentZoom = value;
+    applyZoom();
+};
+
 window.stopAILens = () => {
     const videoElement = document.getElementById('camera-feed');
-    const stream = videoElement.srcObject;
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+    if (videoElement && videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach(track => track.stop());
+        videoElement.srcObject = null;
     }
-    videoElement.srcObject = null;
+    videoTrack = null;
     isFlashOn = false;
     document.getElementById('opus-lens-container').style.display = 'none';
 };
 
 window.toggleFlash = async () => {
-    const videoElement = document.getElementById('camera-feed');
-    const stream = videoElement.srcObject;
-    if (!stream) return;
-
-    const track = stream.getVideoTracks()[0];
-    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+    if (!videoTrack) return;
+    const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
 
     if (!capabilities.torch) {
-        alert("Opus Info: Thiết bị này không hỗ trợ điều khiển Flash vật lý.");
+        alert("Opus Info: Thiết bị không hỗ trợ Flash vật lý.");
         return;
     }
 
     try {
         isFlashOn = !isFlashOn;
-        await track.applyConstraints({
-            advanced: [{ torch: isFlashOn }]
-        });
+        await videoTrack.applyConstraints({ advanced: [{ torch: isFlashOn }] });
         
-        const flashBtn = document.querySelector('[onclick="toggleFlash()"]');
+        const flashBtn = document.getElementById('flash-btn');
         if (flashBtn) {
-            if (isFlashOn) {
-                flashBtn.classList.add('bg-yellow-500', 'text-black');
-                flashBtn.classList.remove('text-yellow-500');
-            } else {
-                flashBtn.classList.remove('bg-yellow-500', 'text-black');
-                flashBtn.classList.add('text-yellow-500');
-            }
+            flashBtn.classList.toggle('bg-yellow-500', isFlashOn);
+            flashBtn.classList.toggle('text-black', isFlashOn);
+            flashBtn.classList.toggle('text-yellow-500', !isFlashOn);
         }
     } catch (err) {
         console.error("Flash Error:", err);
@@ -75,39 +117,30 @@ window.toggleFlash = async () => {
 window.capturePhoto = () => {
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
-    
-    if (video.readyState !== 4) return;
+    if (!video || video.readyState !== 4) return;
 
     canvas.width = video.videoWidth; 
     canvas.height = video.videoHeight;
-    
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0);
     
-    // Vibe Flash đặc trưng
-    document.body.style.filter = "brightness(3)";
-    setTimeout(() => { document.body.style.filter = "none"; }, 100);
+    document.body.style.filter = "brightness(2.5)";
+    setTimeout(() => { document.body.style.filter = "none"; }, 80);
     
-    // GIẢI PHÁP CHỐNG CRASH: Sử dụng Blob thay vì DataURL nặng nề
     canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
+        const fileName = `OpusMap_${Date.now()}.jpg`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
         
-        // Trên Mobile, việc tự động link.click() thường bị chặn hoặc gây crash
-        // Em chuyển sang mở ảnh trong tab mới để sếp "chạm và giữ" để lưu (Save Image)
-        // Đây là cách chuẩn nhất cho UX Mobile 2027
-        const newWindow = window.open(url, '_blank');
-        
-        if (!newWindow) {
-            // Nếu bị chặn popup, dùng giải pháp dự phòng là tải về
-            const link = document.createElement('a');
-            link.download = `Opus_${Date.now()}.jpg`;
-            link.href = url;
-            link.click();
-        }
-
-        // Dọn dẹp bộ nhớ sau khi dùng
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         
-        console.log("Opus Intelligence: Masterpiece captured.");
-    }, 'image/jpeg', 0.9);
+        const sub = document.getElementById('ai-suggestion');
+        if(sub) {
+            sub.innerText = "Masterpiece Saved!";
+            setTimeout(() => sub.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`, 2000);
+        }
+    }, 'image/jpeg', 1.0);
 };

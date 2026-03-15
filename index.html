@@ -77,18 +77,36 @@
 <body oncontextmenu="return false;"> 
 
     <div id="opus-lens-container">
-        <video id="camera-feed" autoplay playsinline></video>
+        <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+        
         <div class="lens-overlay">
             <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
             <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
-            <div class="absolute top-10 left-1/2 -translate-x-1/2 text-center w-full">
-                <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">AI Composition Active</p>
-                <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning...</p>
+            
+            <div class="absolute top-10 left-0 right-0 text-center">
+                <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">Opus Elite Lens</p>
+                <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">System Ready</p>
             </div>
-            <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-10 pointer-events-auto">
-                <button id="close-lens-btn" class="p-4 glass rounded-full text-white"><i data-lucide="x"></i></button>
-                <div id="capture-btn" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-90 transition"><div class="w-16 h-16 rounded-full bg-white"></div></div>
-                <button id="flash-btn" onclick="if(window.toggleFlash) window.toggleFlash()" class="p-4 glass rounded-full text-yellow-500 transition-all active:scale-95">
+
+            <div class="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-4 pointer-events-auto">
+                <span class="text-[8px] text-yellow-500 font-bold">1x</span>
+                <input type="range" min="1" max="5" step="0.1" value="1" 
+                       oninput="if(window.setZoom) window.setZoom(this.value)"
+                       class="h-40 w-1 appearance-none bg-white/20 rounded-full accent-yellow-500 overflow-hidden" 
+                       style="-webkit-appearance: slider-vertical;">
+                <span class="text-[8px] text-yellow-500 font-bold">5x</span>
+            </div>
+
+            <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-6 pointer-events-auto">
+                <button id="close-lens-btn" onclick="window.stopAILens()" class="p-4 glass rounded-full text-white active:scale-90 transition">
+                    <i data-lucide="x"></i>
+                </button>
+
+                <div onclick="window.capturePhoto()" id="capture-btn" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-95 transition cursor-pointer">
+                    <div class="w-16 h-16 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]"></div>
+                </div>
+
+                <button id="flash-btn" onclick="window.toggleFlash()" class="p-4 glass rounded-full text-yellow-500 active:scale-90 transition">
                     <i data-lucide="zap"></i>
                 </button>
             </div>
@@ -107,9 +125,13 @@
                     </button>
                 </div>
                 <div class="flex flex-col items-center">
-                    <div class="px-3 py-0.5 rounded-full glass text-[8px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Opus Intelligence</div>
-                    <div class="text-white font-light text-lg tracking-[0.1em] uppercase text-center" id="header-text">...</div>
-                </div>
+    <div class="px-4 py-1 rounded-full glass text-[20px] font-black text-yellow-500 uppercase tracking-[0.3em] mb-1 shadow-[0_0_20px_rgba(251,191,36,0.25)] border border-yellow-500/30">
+        Opus Map
+    </div>
+    <div class="text-white font-light text-lg tracking-[0.15em] uppercase text-center" id="header-text">
+        ...
+    </div>
+</div>
                 <div class="flex justify-end pointer-events-auto">
                     <button id="tracking-btn" onclick="toggleTracking()" class="p-3 glass rounded-2xl text-yellow-400">
                         <i data-lucide="map-pin" class="w-5 h-5"></i>
