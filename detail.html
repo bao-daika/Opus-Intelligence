@@ -11,103 +11,81 @@
         body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; user-select: none; -webkit-user-select: none; }
         .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
         
-        /* MŨI TÊN ĐIỀU HƯỚNG ELITE */
+        /* FIX CHỒNG CHÉO HEADER TRÊN MOBILE */
+        .top-nav-container {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            align-items: center; padding: 12px 10px; gap: 5px;
+        }
+
         .nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 100;
-            width: 60px;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(251, 191, 36, 0.4);
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-            cursor: pointer;
-            pointer-events: auto;
+            position: absolute; top: 50%; transform: translateY(-50%); z-index: 100;
+            width: 60px; height: 100px; display: flex; align-items: center; justify-content: center;
+            color: rgba(251, 191, 36, 0.4); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer; pointer-events: auto;
         }
-        .nav-arrow:hover {
-            color: #fbbf24;
-            background: rgba(251, 191, 36, 0.05);
-        }
-        .nav-arrow.disabled {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .nav-arrow:hover { color: #fbbf24; background: rgba(251, 191, 36, 0.05); }
+        .nav-arrow.disabled { opacity: 0; pointer-events: none; }
         .arrow-left { left: 0; border-radius: 0 20px 20px 0; }
         .arrow-right { right: 0; border-radius: 20px 0 0 20px; }
 
-        /* PHOTO STAGE LOGIC */
+        /* GIẢM KHOẢNG ĐEN THỪA */
         .photo-stage { 
-            height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden;
-            display: flex; justify-content: center;
+            height: 65vh; width: 100vw; position: relative; background: #000; overflow: hidden;
+            display: flex; justify-content: center; margin-top: 50px;
         }
         .slider-container { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
         
         .slide-item { 
-            min-width: 100vw; height: 100vh; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start; 
-            padding-top: 100px; 
+            min-width: 100vw; height: 100%; 
+            display: flex; justify-content: center; align-items: center; 
         }
         
         .master-img { 
-            max-width: 90%; max-height: 75vh; 
+            max-width: 95%; max-height: 90%; 
             object-fit: contain; z-index: 1; 
-            box-shadow: 0 20px 80px rgba(0,0,0,0.9); 
+            box-shadow: 0 10px 50px rgba(0,0,0,0.9); 
             display: block; 
         }
 
-        .center-lock {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 60;
-        }
+        .center-lock { display: flex; justify-content: center; align-items: center; }
 
-        .slider-nav { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 30; }
-        .nav-dot { width: 40px; height: 2px; background: rgba(255,255,255,0.1); transition: all 0.3s; cursor: pointer; }
+        /* DOTS ĐẨY LÊN GẦN ẢNH */
+        .slider-nav { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 30; }
+        .nav-dot { width: 30px; height: 2px; background: rgba(255,255,255,0.1); transition: all 0.3s; cursor: pointer; }
         .nav-dot.active { background: #fbbf24; box-shadow: 0 0 15px #fbbf24; }
 
-        .info-section { background: #020617; min-height: 50vh; position: relative; z-index: 20; border-top: 1px solid rgba(251, 191, 36, 0.1); }
+        .info-section { background: #020617; position: relative; z-index: 20; border-top: 1px solid rgba(251, 191, 36, 0.1); }
         .title-minimal { font-size: clamp(1.5rem, 5vw, 3.5rem); font-weight: 200; letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; }
         .comment-node { border-left: 1px solid rgba(251, 191, 36, 0.1); padding-left: 1.5rem; margin-bottom: 2rem; }
         .no-select { pointer-events: none; user-select: none; -webkit-user-drag: none; }
         
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 10px; }
-
         .vibe-pulse { animation: vibe-glow 2s infinite; }
         @keyframes vibe-glow {
             0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
             50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
             100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
         }
+
+        /* FIX RIÊNG CHO IPHONE 6 (MÀN HÌNH THẤP) */
+        @media (max-height: 667px) {
+            .photo-stage { height: 55vh; }
+            .info-section { padding: 1.5rem !important; }
+        }
     </style>
 </head>
 <body>
 
     <div id="app-interface"></div>
-
     <script>
         let isPlaying = false;
         let atmosphereAudio = null;
 
-        // --- KHỞI TẠO DATA ---
         const spot = JSON.parse(localStorage.getItem("selectedSpot"));
         if(!spot) { window.location.href = "index.html"; }
 
-        // SẾP FIX: CHỈ XÀI IMAGES - LOẠI BỎ imageUrl HOÀN TOÀN
         const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
         let currentSlide = 0;
-
-        // URL dẫn đường 2027
         const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
 
         const toggleVibe = () => {
@@ -136,25 +114,24 @@
             }
 
             container.innerHTML = `
-                <div class="flex flex-col relative">
-                    <div class="fixed top-0 left-0 w-full z-50 p-4 md:p-6 flex items-center justify-between pointer-events-none">
-                        <div class="flex-1 flex justify-start">
-                            <button onclick="window.history.back()" class="glass px-4 py-2 rounded-full font-bold text-[9px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto border border-yellow-500/20">
+                <div class="flex flex-col relative min-h-screen">
+                    <div class="top-nav-container">
+                        <div class="flex justify-start">
+                            <button onclick="window.history.back()" class="glass px-3 py-1.5 rounded-full font-bold text-[8px] text-yellow-500 uppercase tracking-widest active:scale-95 transition border border-yellow-500/20">
                                 ← Back
                             </button>
                         </div>
 
-                        <div class="center-lock pointer-events-auto">
+                        <div class="center-lock">
                             ${hasAudio ? `
-                            <button id="vibe-btn" onclick="toggleVibe()" class="glass px-5 py-2 rounded-full font-bold text-[9px] text-yellow-500 uppercase tracking-widest active:scale-95 transition flex items-center border border-yellow-500/40">
-                                <span id="vibe-icon"><i data-lucide="music" class="w-3 h-3 mr-2"></i></span>
-                                Atmosphere
+                            <button id="vibe-btn" onclick="toggleVibe()" class="glass px-3 py-1.5 rounded-full font-bold text-[8px] text-yellow-500 uppercase tracking-widest active:scale-95 transition flex items-center border border-yellow-500/40">
+                                <span id="vibe-icon"><i data-lucide="music" class="w-3 h-3 mr-2"></i></span> Atmosphere
                             </button>
                             ` : ''}
                         </div>
 
-                        <div class="flex-1 flex justify-end">
-                            <div class="glass px-4 py-2 rounded-full font-bold text-[8px] text-white/30 uppercase tracking-[0.3em] border border-white/5 pointer-events-auto">
+                        <div class="flex justify-end">
+                            <div class="glass px-3 py-1.5 rounded-full font-bold text-[7px] text-white/30 uppercase tracking-[0.2em] border border-white/5">
                                 Opus Insight
                             </div>
                         </div>
@@ -260,9 +237,7 @@
 
         window.changeSlide = (direction) => {
             const nextIdx = currentSlide + direction;
-            if (nextIdx >= 0 && nextIdx < photoGallery.length) {
-                goToSlide(nextIdx);
-            }
+            if (nextIdx >= 0 && nextIdx < photoGallery.length) goToSlide(nextIdx);
         };
 
         window.goToSlide = (index) => {
@@ -271,10 +246,8 @@
             const dots = document.querySelectorAll('.nav-dot');
             const arrowPrev = document.getElementById('arrow-prev');
             const arrowNext = document.getElementById('arrow-next');
-
             if(slider) slider.style.transform = `translateX(-${currentSlide * 100}vw)`;
             dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
-
             if(arrowPrev) currentSlide === 0 ? arrowPrev.classList.add('disabled') : arrowPrev.classList.remove('disabled');
             if(arrowNext) currentSlide === photoGallery.length - 1 ? arrowNext.classList.add('disabled') : arrowNext.classList.remove('disabled');
         };
@@ -298,14 +271,11 @@
             document.getElementById('user-comment').value = "";
         };
 
-        // Khởi động trang
         window.onload = renderPage;
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027
+        // --- PHÒNG THỦ OPUS 2027
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => {
-            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
-        };
+        document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
         document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
     </script>

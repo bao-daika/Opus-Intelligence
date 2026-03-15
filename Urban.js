@@ -29,7 +29,6 @@ const urbanSpots = [
         lng: 2.294481,
         images: [
             "Urban/EiffelTower.jpg",
-            "Urban/Eiffel_Detail.jpg"
         ],
         audioUrl: "Audio/France.mp3",
         camera: "Fujifilm GFX 100 II | GF 32-64mm f/4",
@@ -45,7 +44,6 @@ const urbanSpots = [
         lng: -99.167665,
         images: [
             "Urban/Mexico.jpg",
-            "Urban/Mexico_Street.jpg"
         ],
         audioUrl: "Audio/Mexico.mp3",
         camera: "Sony A7R V | FE 24-70mm f/2.8 GM II",
@@ -76,7 +74,7 @@ const urbanSpots = [
         lng: 121.501154, 
         images: [
             "Urban/China.jpg",
-            "Urban/Shanghai_Neon.jpg"
+    
         ],
         audioUrl: "Audio/China.mp3",
         camera: "Fujifilm GFX 100 II | GF 23mm f/4 R LM WR",
