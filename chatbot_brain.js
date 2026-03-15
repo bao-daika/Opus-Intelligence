@@ -3,7 +3,7 @@
 const chatbotBrain = {
     /**
      * Tạo hoặc lấy Device ID duy nhất từ localStorage
-     * Khớp với hệ thống định danh Boss - Mentor để quản lý trí nhớ AI
+     * Khớp với hệ thống định danh Master - Assistant để quản lý trí nhớ AI
      */
     getDeviceId() {
         let id = localStorage.getItem('opus_navigator_device_id');
@@ -18,21 +18,21 @@ const chatbotBrain = {
      * Gửi tin nhắn, hình ảnh và dữ liệu bản đồ lên API xử lý
      * @param {string} input - Tin nhắn từ Master
      * @param {object} currentCoords - Tọa độ thực tế từ bản đồ
-     * @param {boolean} lensActive - Trạng thái chế độ Lens (Vision AI)
+     * @param {boolean} hasImage - Trạng thái có đính kèm ảnh hay không (từ chatbot_ui.js)
      * @returns {string} - Phản hồi từ Gemini 3.1 Flash (Sync 2027)
      */
-    async processInput(input, currentCoords = null, lensActive = false) {
+    async processInput(input, currentCoords = null, hasImage = false) {
         try {
-            // 1. Đồng bộ dữ liệu các điểm chụp từ các layer (Urban, Nature, Vlog)
-            // Đảm bảo AI luôn biết xung quanh Master có những Spot nào đẹp
+            // 1. ĐỒNG BỘ DỮ LIỆU BỐI CẢNH (CONTEXT)
+            // Đảm bảo Assistant luôn biết xung quanh Master có những Spot nào đẹp
             const mapContext = {
                 urban: (typeof urbanSpots !== 'undefined') ? urbanSpots : [],
                 nature: (typeof natureSpots !== 'undefined') ? natureSpots : [],
                 vlog: (typeof vlogSpots !== 'undefined') ? vlogSpots : []
             };
 
-            // 2. Kết nối với hệ thống Backend Opus Luxury AI
-            // Gửi toàn bộ dữ liệu context để AI phân tích chiều sâu
+            // 2. KẾT NỐI VỚI HỆ THỐNG BACKEND OPUS LUXURY AI
+            // Gửi dữ liệu kèm chỉ thị Photography Assistant chuyên sâu
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 
@@ -40,27 +40,36 @@ const chatbotBrain = {
                 },
                 body: JSON.stringify({
                     message: input,
-                    allSpots: mapContext, // Gửi kho dữ liệu để AI tư vấn địa điểm
-                    userLocation: currentCoords, // Tọa độ thực tế để AI tính toán góc nắng, thời tiết
-                    attachedImage: window.currentImage || null, // Dữ liệu ảnh từ Vision AI (vừa chụp xong)
+                    allSpots: mapContext, 
+                    userLocation: currentCoords, 
+                    attachedImage: window.currentImage || null, 
                     deviceId: this.getDeviceId(),
-                    isLensMode: lensActive, // Thông báo AI đang ở chế độ soi ống kính
+                    isLensMode: hasImage, // Đồng bộ hóa việc đang phân tích hình ảnh
+                    // Chỉ thị nghiêm ngặt: Urban/Nature Only & Anti-Toxic Content
+                    systemMode: "Photography_Assistant_2027_Strict",
                     activeCategory: document.getElementById('header-text')?.innerText || "OPUS GLOBAL"
                 })
             });
 
-            // Kiểm tra trạng thái kết nối Neural Link
+            // 3. KIỂM TRA TRẠNG THÁI KẾT NỐI & NỘI DUNG
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                
+                // Nếu Backend trả về lỗi do vi phạm Content Policy (Nudes/Toxic/Waste)
+                if (response.status === 403 || response.status === 422) {
+                    return "Sếp ơi, hình ảnh hoặc nội dung này không phù hợp với tiêu chuẩn Urban & Nature cao cấp của Opus. Em xin phép từ chối xử lý để giữ gìn không gian nghệ thuật của chúng ta ạ!";
+                }
+                
                 throw new Error(errorData.reply || "Neural link fragmented.");
             }
 
             const data = await response.json();
             
-            // 3. LOGIC THÔNG MINH 2027: Tự động tương tác với UI
-            // Nếu Mentor nhận thấy sếp đang cần soi bố cục, AI sẽ nhắc nhở mở Lens
-            if (data.reply.toLowerCase().includes("mở lens") && typeof window.activateAILens === "function") {
-                console.log("Opus Logic: Mentor suggests activating Lens Mode for visual analysis.");
+            // 4. LOGIC TƯƠNG TÁC THÔNG MINH: Gợi ý sử dụng Lens AI
+            // Nếu AI nhận thấy sếp đang hỏi về kỹ thuật chụp, nó sẽ nhắc sếp dùng Lens
+            const suggestLens = ["góc chụp", "bố cục", "ánh sáng", "composition", "frame", "lighting"];
+            if (suggestLens.some(word => data.reply.toLowerCase().includes(word)) && typeof window.activateAILens === "function") {
+                console.log("Opus Logic: Assistant suggests activating Lens Mode for photography guidance.");
             }
 
             // Trả về câu trả lời để chatbot_ui.js hiển thị
@@ -69,12 +78,11 @@ const chatbotBrain = {
         } catch (error) {
             console.error("Opus Brain Failure:", error);
             
-            // Phản hồi dự phòng khi mất kết nối (Vibe Mentor lịch lãm, giữ đúng phong cách sếp yêu cầu)
-            // Ngay cả khi lỗi, AI vẫn phải giữ phong thái của một trợ lý Elite
-            return "Sếp ơi, kết nối vệ tinh Opus đang bị nhiễu do bão từ trường tại tọa độ này. Em đang nỗ lực tái lập link để phục vụ sếp, sếp thử lại sau vài giây nhé!";
+            // Phản hồi dự phòng giữ đúng phong thái trợ lý Elite của sếp
+            return "Sếp ơi, kết nối vệ tinh Opus đang bị nhiễu do bão từ trường tại tọa độ này. Em đang nỗ lực tái lập link để phục vụ sếp, sếp đợi em vài giây nhé!";
         }
     }
 };
 
-// Đảm bảo hệ thống AI Core luôn sẵn sàng
-console.log("Opus 2027: AI Brain Neural Link established.");
+// Khởi tạo Neural Link thành công
+console.log("Opus 2027: Photography Assistant Brain Neural Link established.");
