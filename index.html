@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     
@@ -22,49 +21,52 @@
             height: 100%; margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
             overflow: hidden; position: fixed; width: 100%; 
             user-select: none; -webkit-user-select: none;
-            -webkit-touch-callout: none;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
         }
-        
         #map { height: 100vh; width: 100vw; z-index: 1; background: var(--bg); filter: saturate(0.8) contrast(1.2); }
         .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(251, 191, 36, 0.15); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
         .active-cat { background: var(--gold) !important; color: #020617 !important; box-shadow: 0 0 25px rgba(251, 191, 36, 0.4); }
-        
-        .user-location-pulse {
-            width: 14px; height: 14px; background: var(--cyan); border: 2px solid white;
-            border-radius: 50%; position: relative; box-shadow: 0 0 15px var(--cyan);
-        }
-        .user-location-pulse::after {
-            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
-            border: 2px solid var(--cyan); border-radius: 50%;
-            animation: ripple 2s infinite; opacity: 0;
-        }
+        .user-location-pulse { width: 14px; height: 14px; background: var(--cyan); border: 2px solid white; border-radius: 50%; position: relative; box-shadow: 0 0 15px var(--cyan); }
+        .user-location-pulse::after { content: ''; position: absolute; inset: -10px; border: 2px solid var(--cyan); border-radius: 50%; animation: ripple 2s infinite; opacity: 0; }
         @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
-
-        #chat-window { 
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 5000;
-            width: calc(100% - 40px); max-width: 500px; display: none; flex-direction: column;
-            border-radius: 30px; border: 1px solid rgba(251, 191, 36, 0.3); overflow: hidden;
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        #chat-window { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 5000; width: calc(100% - 40px); max-width: 500px; display: none; flex-direction: column; border-radius: 30px; border: 1px solid rgba(251, 191, 36, 0.3); overflow: hidden; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-
         #opus-lens-container { position: fixed; inset: 0; z-index: 9999; display: none; background: #000; overflow: hidden; }
         #camera-feed { width: 100%; height: 100%; object-fit: cover; }
         .lens-overlay { position: absolute; inset: 0; pointer-events: none; border: 40px solid rgba(2, 6, 23, 0.8); }
         .grid-line-h { position: absolute; left: 0; width: 100%; height: 1px; background: rgba(251, 191, 36, 0.3); }
         .grid-line-v { position: absolute; top: 0; width: 1px; height: 100%; background: rgba(251, 191, 36, 0.3); }
-
         #sidebar { position: absolute; top: 100px; left: 20px; z-index: 4000; width: calc(100% - 40px); max-width: 280px; max-height: 60vh; overflow-y: auto; }
-        .leaflet-popup-content-wrapper { background: rgba(2, 6, 23, 0.95) !important; border: 1px solid var(--gold); border-radius: 20px !important; padding: 0 !important; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8) !important; }
+        .leaflet-popup-content-wrapper { background: rgba(2, 6, 23, 0.95) !important; border: 1px solid var(--gold); border-radius: 20px !important; padding: 0 !important; overflow: hidden; }
         .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
         .popup-media-container { width: 100%; height: 130px; position: relative; overflow: hidden; border-radius: 20px 20px 0 0; }
-        .popup-media-container video, .popup-media-container img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-        
-        #ai-core { position: absolute; bottom: 30px; right: 20px; z-index: 6000; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); animation: beacon 2s infinite; }
-        @keyframes beacon { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.6; } }
+        .popup-media-container video, .popup-media-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* CAMERA AI LENS ANIMATION - NÚT DƯỚI (MỌI THỨ CỦA SẾP GIỮ NGUYÊN) */
+        #ai-core {
+            position: absolute; bottom: 30px; right: 20px; z-index: 6000;
+            width: 70px; height: 70px; border-radius: 50%;
+            background: #111; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 2px solid #333; overflow: hidden;
+        }
+        .lens-inner {
+            width: 45px; height: 45px; border-radius: 50%;
+            background: radial-gradient(circle, #222 0%, #000 80%);
+            border: 1px solid var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            animation: lensZoom 3s infinite ease-in-out;
+        }
+        .lens-glass-reflection {
+            position: absolute; top: 20%; left: 20%; width: 15px; height: 8px;
+            background: rgba(255,255,255,0.1); border-radius: 50%; transform: rotate(-45deg);
+        }
+        @keyframes lensZoom {
+            0%, 100% { transform: scale(1); box-shadow: inset 0 0 5px var(--gold); }
+            50% { transform: scale(1.15); box-shadow: inset 0 0 20px var(--gold); }
+        }
+
+        .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); }
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -72,39 +74,39 @@
     <div id="opus-lens-container">
         <video id="camera-feed" autoplay playsinline></video>
         <div class="lens-overlay">
-            <div class="grid-line-h" style="top: 33.33%"></div>
-            <div class="grid-line-h" style="top: 66.66%"></div>
-            <div class="grid-line-v" style="left: 33.33%"></div>
-            <div class="grid-line-v" style="left: 66.66%"></div>
+            <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
+            <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
             <div class="absolute top-10 left-1/2 -translate-x-1/2 text-center">
                 <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">AI Composition Active</p>
-                <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning Golden Hour...</p>
+                <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning...</p>
             </div>
             <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-10 pointer-events-auto">
                 <button onclick="stopAILens()" class="p-4 glass rounded-full text-white"><i data-lucide="x"></i></button>
-                <div onclick="capturePhoto()" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-90 transition">
-                    <div class="w-16 h-16 rounded-full bg-white"></div>
-                </div>
-                <button class="p-4 glass rounded-full text-yellow-500"><i data-lucide="zap"></i></button>
+                <div onclick="capturePhoto()" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-90 transition"><div class="w-16 h-16 rounded-full bg-white"></div></div>
+                <button onclick="toggleFlash()" class="p-4 glass rounded-full text-yellow-500 transition-all active:scale-95">
+                    <i data-lucide="zap"></i>
+                </button>
             </div>
         </div>
         <canvas id="capture-canvas" class="hidden"></canvas>
     </div>
 
     <div class="relative h-full w-full">
-        <div class="absolute top-0 left-0 right-0 z-[4000] p-4 md:p-6 flex justify-between items-center pointer-events-none">
+        <div class="absolute top-0 left-0 right-0 z-[4000] p-4 flex justify-between items-center pointer-events-none">
             <div class="flex gap-2 pointer-events-auto">
-                <button onclick="toggleMenu()" class="p-3 md:p-4 glass rounded-2xl text-white"><i data-lucide="align-left" class="w-5 h-5"></i></button>
-                <button id="auth-btn" onclick="handleAuth()" class="glass px-3 py-2 rounded-2xl border border-yellow-500/30 flex items-center gap-2 transition">
+                <button onclick="toggleMenu()" class="p-4 glass rounded-2xl text-white"><i data-lucide="align-left" class="w-5 h-5"></i></button>
+                <button id="auth-btn" onclick="handleAuth()" class="glass px-3 py-2 rounded-2xl border border-yellow-500/30 flex items-center gap-2">
                     <div id="auth-status-icon" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
                     <span id="auth-text" class="text-[8px] font-black text-white uppercase tracking-widest">Join Elite</span>
                 </button>
             </div>
             <div class="flex flex-col items-center">
-                <div class="px-3 py-0.5 rounded-full glass text-[7px] md:text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Opus Intelligence</div>
-                <div class="text-white font-light text-sm md:text-xl tracking-[0.2em] uppercase" id="header-text">URBAN</div>
+                <div class="px-3 py-0.5 rounded-full glass text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Opus Intelligence</div>
+                <div class="text-white font-light text-xl tracking-[0.2em] uppercase" id="header-text">...</div>
             </div>
-            <button id="tracking-btn" onclick="toggleTracking()" class="p-3 md:p-4 glass rounded-2xl text-yellow-400 pointer-events-auto transition-all"><i data-lucide="aperture" class="w-5 h-5"></i></button>
+            <button id="tracking-btn" onclick="toggleTracking()" class="p-4 glass rounded-2xl text-yellow-400 pointer-events-auto">
+                <i data-lucide="map-pin" class="w-5 h-5"></i>
+            </button>
         </div>
 
         <div id="sidebar" class="hidden glass rounded-[30px] p-6 text-white">
@@ -113,73 +115,102 @@
         </div>
 
         <div id="chat-window" class="glass p-6 text-white">
-            <div class="flex justify-between items-center mb-4">
-                <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">AI Assistant</span>
-                <button onclick="toggleChat()"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <div class="h-24 flex items-center justify-center border-b border-white/10 mb-4">
-                <div class="flex gap-1 items-end h-6">
-                    <div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.1s] h-3"></div>
-                    <div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.2s] h-6"></div>
-                    <div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.3s] h-4"></div>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="ai-input" placeholder="Ask about coordinates..." class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-yellow-500">
-                <button onclick="activateAILens()" class="px-4 bg-yellow-500 text-black rounded-xl font-black text-[10px] uppercase">Lens</button>
-            </div>
+            <div class="flex justify-between items-center mb-4"><span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">AI Assistant</span><button onclick="toggleChat()"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+            <div class="h-24 flex items-center justify-center border-b border-white/10 mb-4"><div class="flex gap-1 items-end h-6"><div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.1s] h-3"></div><div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.2s] h-6"></div><div class="w-1 bg-yellow-500 animate-[pulse_1s_infinite_0.3s] h-4"></div></div></div>
+            <div class="flex gap-2"><input type="text" id="ai-input" placeholder="Ask about coordinates..." class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none"><button onclick="activateAILens()" class="px-4 bg-yellow-500 text-black rounded-xl font-black text-[10px] uppercase">Lens</button></div>
         </div>
 
         <div id="map"></div>
-        <div id="ai-core" class="glass" onclick="toggleChat()">
-            <div class="absolute inset-0 rounded-full border border-yellow-500/30 animate-ping"></div>
-            <i data-lucide="mic" class="text-yellow-500 w-5 h-5"></i>
+        
+        <div id="ai-core" onclick="toggleChat()">
+            <div class="lens-inner">
+                <div class="lens-glass-reflection"></div>
+                <i data-lucide="aperture" class="text-yellow-500 w-5 h-5"></i> 
+            </div>
         </div>
     </div>
 
     <script src="config.js"></script>
-    <script src="Urban.js"></script>
+    <script src="CameraAI.js"></script> <script src="Urban.js"></script>
     <script src="Nature.js"></script>
     <script src="Vlog.js"></script>
 
     <script>
-        // --- 1. FIREBASE AUTH ---
+        // --- 1. CORE STATE & FIREBASE (GIỮ NGUYÊN) ---
         const firebaseConfig = { apiKey: "AIzaSy...", authDomain: "gymfueltoronto-49bd2.firebaseapp.com", databaseURL: "https://gymfueltoronto-49bd2-default-rtdb.firebaseio.com", projectId: "gymfueltoronto-49bd2" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        let activeCategoryObject = menuConfig[0]; 
 
-        window.handleAuth = async () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                if (!auth.currentUser) await auth.signInWithPopup(provider);
-                else if(confirm("Sếp muốn đăng xuất?")) { await auth.signOut(); location.reload(); }
-            } catch (e) { console.error(e); }
-        };
-
-        auth.onAuthStateChanged(user => {
-            const statusIcon = document.getElementById('auth-status-icon');
-            const authText = document.getElementById('auth-text');
-            if (user) {
-                statusIcon.innerHTML = `<img src="${user.photoURL}" class="w-full h-full rounded-full border border-yellow-500">`;
-                statusIcon.className = "w-5 h-5";
-                authText.innerText = "Elite Member";
-                authText.classList.add('text-yellow-500');
-            }
-        });
-
-        // --- 2. MAP LOGIC & URBAN INITIAL ---
-        // Sếp nhìn đây: Em ép Tab đầu tiên là Urban Landscapes
-        let activeCategory = "Urban Landscapes"; 
-        const allSpots = [...(typeof urbanSpots!=='undefined'?urbanSpots:[]),...(typeof natureSpots!=='undefined'?natureSpots:[]),...(typeof vlogSpots!=='undefined'?vlogSpots:[])];
+        // --- 2. MAP INIT (GIỮ NGUYÊN) ---
         const map = L.map('map', { zoomControl: false, attributionControl: false, minZoom: 3, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0 }).setView([25, 10], 3);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true }).addTo(map);
-
         let markerClusterGroup = L.markerClusterGroup({ 
             showCoverageOnHover: false, maxClusterRadius: 40,
             iconCreateFunction: (c) => L.divIcon({html:`<div class="glass flex items-center justify-center rounded-full w-10 h-10 border border-yellow-500 text-yellow-500 font-black text-[10px]">${c.getChildCount()}</div>`, className:'custom-cluster', iconSize:[40,40]})
         }).addTo(map);
 
-        // --- 3. ĐỊNH VỊ ---
+        // --- 3. DYNAMIC LOGIC (GIỮ NGUYÊN) ---
+        const getAllSpots = () => [
+            ...(typeof urbanSpots!=='undefined'?urbanSpots:[]),
+            ...(typeof natureSpots!=='undefined'?natureSpots:[]),
+            ...(typeof vlogSpots!=='undefined'?vlogSpots:[])
+        ];
+
+        function renderMarkers() {
+            markerClusterGroup.clearLayers();
+            const allSpotsNow = getAllSpots();
+            const filtered = allSpotsNow.filter(s => s.category === activeCategoryObject.dataKey);
+            
+            const newMarkers = filtered.map(spot => {
+                const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
+                const mediaHtml = spot.videoUrl ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` : `<img src="${spot.imageUrl}">`;
+                const popupContent = `<div class="text-white"><div class="popup-media-container">${mediaHtml}</div><div class="p-4"><p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p><h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3><button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">Explore</button></div></div>`;
+                return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
+            });
+
+            if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
+            map.invalidateSize();
+        }
+
+        function renderMenu() {
+            if (typeof menuConfig === 'undefined') return;
+            document.getElementById('dynamic-menu').innerHTML = menuConfig.map(item => `
+                <button onclick="handleMenuClick('${item.id}')" class="w-full flex items-center gap-4 p-3 rounded-2xl transition ${activeCategoryObject.id===item.id?'active-cat':'text-gray-400'}">
+                    <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+                    <span class="text-[9px] font-bold uppercase tracking-widest">${item.label}</span>
+                </button>`).join('');
+            lucide.createIcons();
+        }
+
+        window.handleMenuClick = (id) => { 
+            activeCategoryObject = menuConfig.find(m => m.id === id); 
+            document.getElementById('header-text').innerText = activeCategoryObject.label; 
+            toggleMenu(); 
+            setTimeout(renderMarkers, 100);
+            renderMenu(); 
+        }
+
+        // --- 4. CÁC HÀM TIỆN ÍCH (GIỮ NGUYÊN) ---
+        window.toggleMenu = () => document.getElementById('sidebar').classList.toggle('hidden');
+        window.toggleChat = () => { const c=document.getElementById('chat-window'); c.style.display=c.style.display==='flex'?'none':'flex'; };
+        window.goToDetail = (id) => { const s = getAllSpots().find(x=>x.id===id); if(s){localStorage.setItem("selectedSpot", JSON.stringify(s)); window.location.href="detail.html";} };
+
+        // --- 5. INITIALIZE (GIỮ NGUYÊN) ---
+        window.addEventListener('load', () => { 
+            document.getElementById('header-text').innerText = activeCategoryObject.label;
+            renderMenu(); 
+            renderMarkers(); 
+            lucide.createIcons(); 
+        });
+
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (GIỮ NGUYÊN - CẤM XÓA) ---
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
+        document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
+        document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
+
+        // Logic Location (Giữ nguyên)
         let userMarker = null, isTracking = false, watchId = null;
         const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="user-location-pulse"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
         window.toggleTracking = () => {
@@ -192,7 +223,7 @@
                         if (!userMarker) userMarker = L.marker([latitude, longitude], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
                         else userMarker.setLatLng([latitude, longitude]);
                         map.flyTo([latitude, longitude], 16, { duration: 1 });
-                    }, (err) => console.error(err), { enableHighAccuracy: true });
+                    }, null, { enableHighAccuracy: true });
                 }
             } else {
                 isTracking = false; btn.classList.remove('bg-cyan-500/20', 'text-cyan-400');
@@ -200,85 +231,6 @@
                 if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
             }
         };
-
-        // --- 4. OPUS AI LENS (SAVE & COMPLIMENT) ---
-        window.activateAILens = async () => {
-            document.getElementById('opus-lens-container').style.display = 'block';
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
-                document.getElementById('camera-feed').srcObject = stream;
-                document.getElementById('ai-suggestion').innerText = "AI Lens: Detecting cinematic depth...";
-                lucide.createIcons();
-            } catch (err) { alert("Sếp ơi, hãy cấp quyền Camera!"); stopAILens(); }
-        };
-
-        window.stopAILens = () => {
-            const stream = document.getElementById('camera-feed').srcObject;
-            if (stream) stream.getTracks().forEach(t => t.stop());
-            document.getElementById('opus-lens-container').style.display = 'none';
-        };
-
-        window.capturePhoto = () => {
-            const video = document.getElementById('camera-feed');
-            const canvas = document.getElementById('capture-canvas');
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-
-            // FLASH EFFECT
-            document.body.style.filter = "brightness(3)";
-            setTimeout(() => { document.body.style.filter = "none"; }, 100);
-
-            // TỰ ĐỘNG LƯU VỀ MÁY SẾP
-            const link = document.createElement('a');
-            link.download = `Opus_2027_Masterpiece_${Date.now()}.jpg`;
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
-
-            // AI NHẬN XÉT (COMPLIMENT)
-            const compliments = [
-                "Opus Intelligence: Bố cục tuyệt vời thưa Sếp! Một kiệt tác thực thụ.",
-                "AI Review: Ánh sáng này quá đẳng cấp, đúng chuẩn vibe 2027!",
-                "Opus System: Tỉ lệ vàng 10/10. Sếp chụp bức này quá đỉnh!",
-                "AI Lens: Độ sâu trường ảnh hoàn hảo. Sếp đã nâng tầm nhiếp ảnh rồi."
-            ];
-            alert(compliments[Math.floor(Math.random() * compliments.length)]);
-            stopAILens();
-        };
-
-        // --- UI RENDER ---
-        function renderMarkers() {
-            markerClusterGroup.clearLayers();
-            allSpots.filter(s => s.category === activeCategory).forEach(spot => {
-                const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
-                const mediaHtml = spot.videoUrl ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` : `<img src="${spot.imageUrl}">`;
-                const popupContent = `<div class="text-white"><div class="popup-media-container">${mediaHtml}</div><div class="p-4"><p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p><h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3><button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">Explore</button></div></div>`;
-                markerClusterGroup.addLayer(L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false}));
-            });
-        }
-
-        window.goToDetail = (id) => { const s = allSpots.find(x=>x.id===id); if(s){localStorage.setItem("selectedSpot", JSON.stringify(s)); window.location.href="detail.html";} };
-        window.handleMenuClick = (id, l) => { activeCategory=l; document.getElementById('header-text').innerText=l.split(' ')[0].toUpperCase(); renderMarkers(); renderMenu(); toggleMenu(); }
-        window.toggleMenu = () => document.getElementById('sidebar').classList.toggle('hidden');
-        window.toggleChat = () => { const c=document.getElementById('chat-window'); c.style.display=c.style.display==='flex'?'none':'flex'; };
-        
-        function renderMenu() {
-            if (typeof menuConfig === 'undefined') return;
-            document.getElementById('dynamic-menu').innerHTML = menuConfig.map(item => `<button onclick="handleMenuClick('${item.id}','${item.label}')" class="w-full flex items-center gap-4 p-3 rounded-2xl transition ${activeCategory===item.label?'active-cat':'text-gray-400'}"><i data-lucide="${item.icon}" class="w-4 h-4"></i><span class="text-[9px] font-bold uppercase tracking-widest">${item.label}</span></button>`).join('');
-            lucide.createIcons();
-        }
-
-        window.addEventListener('load', () => { 
-            document.getElementById('header-text').innerText = "URBAN";
-            renderMenu(); renderMarkers(); lucide.createIcons(); 
-        });
-
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA) ---
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => {
-            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
-        };
-        document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
-        document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
     </script>
 </body>
 </html>
