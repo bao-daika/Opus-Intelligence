@@ -1,4 +1,4 @@
-// --- OPUS AI UI: CENTRAL COMMAND (GEMINI STYLE & POSITION SYNC 2027) ---
+// --- OPUS AI UI: CENTRAL COMMAND (SILENT & TEXT-ONLY 2027) ---
 
 (function injectGeminiStyles() {
     const style = document.createElement('style');
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // C. GÁN SỰ KIỆN
+    // C. GÁN SỰ KIỆN (KHÔNG CÓ VOICE)
     if (sendBtn) sendBtn.onclick = () => window.sendMessage();
     if (aiCore) aiCore.onclick = () => window.toggleChat();
     if (closeChatBtn) closeChatBtn.onclick = () => window.toggleChat();
@@ -227,7 +227,7 @@ window.capturePhoto = async () => {
     showImagePreview(dataUrl);
 };
 
-// 6. SEND MESSAGE (ĐÃ FIX ĐỂ GỌI BRAIN CHUẨN)
+// 6. SEND MESSAGE (CHỈ DÙNG TEXT)
 window.sendMessage = async (overrideText = null) => {
     const input = document.getElementById('ai-input');
     const chatMessages = document.getElementById('chat-messages');
@@ -248,10 +248,10 @@ window.sendMessage = async (overrideText = null) => {
     addChatMessageUI("Mentor is thinking...", false, loadingId);
 
     try {
-        const currentCoords = (typeof userMarker !== 'undefined') ? userMarker.getLatLng() : null;
-        let reply = "Em đang học hỏi sếp ơi, sếp đợi bản Brain 2027 nhé!";
+        // Lấy tọa độ an toàn (Fix lỗi sếp gặp ở bước trước)
+        const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
+        let reply = "Em đang học hỏi sếp ơi...";
         
-        // GỌI BRAIN XỬ LÝ
         if (typeof chatbotBrain !== 'undefined') {
             reply = await chatbotBrain.processInput(text, currentCoords, !!tempImg);
         }
@@ -265,13 +265,12 @@ window.sendMessage = async (overrideText = null) => {
         console.error("Opus UI Error:", error);
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
-            // Hiển thị lỗi thực tế để sếp biết đường xử lý
-            loadingElement.innerText = "Sếp ơi: " + error.message;
+            loadingElement.innerText = "Lỗi kết nối vệ tinh, thưa Sếp.";
         }
     }
 };
 
-// 7. MESSAGE UI (MAX DỒN CHỮ)
+// 7. MESSAGE UI (CHUYÊN BIỆT CHO HIỂN THỊ CHỮ)
 function addChatMessageUI(text, isUser, id = null, imgData = null) {
     const msgBox = document.getElementById('chat-messages');
     if(!msgBox) return;
