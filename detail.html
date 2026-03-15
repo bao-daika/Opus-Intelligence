@@ -7,15 +7,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; }
         .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
         
-        .photo-stage { height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden; }
+        /* CẮN GIỮA HÌNH JPG HOÀN HẢO */
+        .photo-stage { 
+            height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; /* Căn giữa container chính */
+        }
         .slider-container { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
-        .slide-item { min-width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .master-img { max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; box-shadow: 0 0 100px rgba(0,0,0,0.8); }
+        .slide-item { 
+            min-width: 100vw; height: 100vh; 
+            display: flex; align-items: center; justify-content: center; /* Căn giữa item con */
+            padding: 20px; 
+        }
+        .master-img { 
+            max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; 
+            box-shadow: 0 0 100px rgba(0,0,0,0.8); 
+            /* Đảm bảo hình nằm giữa tuyệt đối */
+            margin: auto; display: block; 
+        }
+
         .slider-nav { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 30; }
         .nav-dot { width: 40px; height: 2px; background: rgba(255,255,255,0.1); transition: all 0.3s; cursor: pointer; }
         .nav-dot.active { background: #fbbf24; box-shadow: 0 0 15px #fbbf24; }
@@ -29,6 +44,14 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 10px; }
+
+        /* Animation cho nút Vibe của Sếp */
+        .vibe-pulse { animation: vibe-glow 2s infinite; }
+        @keyframes vibe-glow {
+            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+            100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
+        }
     </style>
 </head>
 <body>
@@ -36,6 +59,26 @@
     <div id="app-interface"></div>
 
     <script>
+        // --- ENGINE ÂM THANH CỦA SẾP ---
+        let isPlaying = false;
+        let atmosphereAudio = null;
+
+        const toggleVibe = () => {
+            if (!atmosphereAudio) return;
+            if (!isPlaying) {
+                atmosphereAudio.play();
+                isPlaying = true;
+                document.getElementById('vibe-btn').classList.add('vibe-pulse', 'bg-yellow-500/20');
+                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="pause-circle" class="w-4 h-4 mr-2"></i>';
+            } else {
+                atmosphereAudio.pause();
+                isPlaying = false;
+                document.getElementById('vibe-btn').classList.remove('vibe-pulse', 'bg-yellow-500/20');
+                document.getElementById('vibe-icon').innerHTML = '<i data-lucide="music" class="w-4 h-4 mr-2"></i>';
+            }
+            if(window.lucide) lucide.createIcons();
+        };
+
         // 1. DỮ LIỆU ĐẦU VÀO
         const spot = JSON.parse(localStorage.getItem("selectedSpot"));
         if(!spot) { window.location.href = "index.html"; }
@@ -43,21 +86,39 @@
         const photoGallery = spot.images || [spot.imageUrl];
         let currentSlide = 0;
 
-        // 2. ĐỊNH VỊ TOÀN CẦU (Đã fix lỗi $ của sếp)
+        // 2. ĐỊNH VỊ TOÀN CẦU
         const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
         const renderPage = () => {
             const container = document.getElementById('app-interface');
+            
+            // KIỂM TRA NHẠC ĐỂ HIỆN NÚT VIBE
+            const hasAudio = spot.audioUrl && spot.audioUrl.trim() !== "";
+            if(hasAudio) {
+                atmosphereAudio = new Audio(spot.audioUrl);
+                atmosphereAudio.loop = false;
+            }
+
             container.innerHTML = `
-                <div class="flex flex-col">
+                <div class="flex flex-col relative">
                     <div class="fixed top-0 left-0 w-full p-6 flex justify-between items-center z-50 pointer-events-none">
                         <button onclick="window.history.back()" class="glass px-6 py-2 rounded-full font-bold text-[10px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto">
                             ← Back
                         </button>
+
                         <div class="glass px-6 py-2 rounded-full font-bold text-[9px] text-white/30 uppercase tracking-[0.4em]">
                             Opus Insight
                         </div>
                     </div>
+
+                    ${hasAudio ? `
+                    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                        <button id="vibe-btn" onclick="toggleVibe()" class="glass px-6 py-2 rounded-full font-bold text-[10px] text-yellow-500 uppercase tracking-widest active:scale-95 transition pointer-events-auto flex items-center border border-yellow-500/30">
+                            <span id="vibe-icon"><i data-lucide="music" class="w-4 h-4 mr-2"></i></span>
+                            Atmosphere
+                        </button>
+                    </div>
+                    ` : ''}
 
                     <div class="photo-stage" id="stage">
                         <div class="slider-container" id="main-slider">
@@ -73,10 +134,6 @@
                                 ${photoGallery.map((_, i) => `<div class="nav-dot ${i===0?'active':''}" onclick="goToSlide(${i})"></div>`).join('')}
                             </div>
                         ` : ''}
-
-                        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center opacity-30 animate-bounce">
-                            <p class="text-[8px] uppercase tracking-[0.5em] mb-2 text-yellow-500">Scroll for Data</p>
-                            <div class="w-[1px] h-10 bg-yellow-500"></div>
                         </div>
                     </div>
 
@@ -140,6 +197,7 @@
                 </div>
             `;
             initSwipe();
+            if(window.lucide) lucide.createIcons();
         };
 
         window.goToSlide = (index) => {
