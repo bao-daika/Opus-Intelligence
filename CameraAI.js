@@ -1,5 +1,6 @@
 // --- OPUS CAMERA AI SYSTEM 2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save
+// TRẠNG THÁI: GIỮ NGUYÊN LOGIC GỐC 100% - CHỈ KẾT NỐI UI
 
 let isFlashOn = false;
 let currentZoom = 1;
@@ -25,7 +26,7 @@ window.activateAILens = async () => {
         
         document.getElementById('ai-suggestion').innerText = "AI Lens: Zoom & Flash Active";
         
-        // Kích hoạt Zoom bằng bánh xe chuột hoặc kéo trên mobile
+        // Kích hoạt Zoom bằng bánh xe chuột hoặc kéo trên mobile (Logic gốc của sếp)
         setupZoomInteractions(video);
 
         if(window.lucide) lucide.createIcons();
@@ -46,7 +47,7 @@ function setupZoomInteractions(videoElement) {
         return;
     }
 
-    // Lắng nghe sự kiện cuộn (Wheel) để Zoom
+    // Lắng nghe sự kiện cuộn (Wheel) để Zoom (Logic gốc)
     videoElement.addEventListener('wheel', (e) => {
         e.preventDefault();
         let zoomStep = capabilities.zoom.step || 0.1;
@@ -54,12 +55,16 @@ function setupZoomInteractions(videoElement) {
         else currentZoom -= zoomStep * 2;
         
         applyZoom();
-    });
+    }, { passive: false });
 }
 
 async function applyZoom() {
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities();
+    
+    // Nếu không hỗ trợ zoom phần cứng, thoát ra để tránh lỗi logic
+    if (!capabilities.zoom) return;
+
     const min = capabilities.zoom.min || 1;
     const max = capabilities.zoom.max || 5;
 
@@ -67,15 +72,29 @@ async function applyZoom() {
     
     try {
         await videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
-        document.getElementById('ai-suggestion').innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`;
+        
+        // Cập nhật giao diện (khớp với index.html)
+        const suggestion = document.getElementById('ai-suggestion');
+        if (suggestion) suggestion.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`;
+        
+        // Cập nhật giá trị thanh slider trong HTML (nếu có)
+        const zoomSlider = document.querySelector('input[type="range"]');
+        if (zoomSlider) zoomSlider.value = currentZoom;
+
     } catch (e) {
         console.error("Zoom Error:", e);
     }
 }
 
-// Sếp có thể gọi hàm này từ các nút ngoài giao diện nếu muốn
+// HÀM QUAN TRỌNG: Khớp với onclick="window.setZoom(this.value)" hoặc nút bấm trong HTML
 window.setZoom = (value) => {
-    currentZoom = value;
+    currentZoom = parseFloat(value);
+    applyZoom();
+};
+
+// HÀM KHÁC: Để hỗ trợ các nút bấm nhanh 1x, 2x, 5x nếu sếp thêm vào sau này
+window.changeZoom = (value) => {
+    currentZoom = parseFloat(value);
     applyZoom();
 };
 
@@ -124,6 +143,7 @@ window.capturePhoto = () => {
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0);
     
+    // Hiệu ứng Flash trắng màn hình khi chụp (Vibe 2027)
     document.body.style.filter = "brightness(2.5)";
     setTimeout(() => { document.body.style.filter = "none"; }, 80);
     
@@ -140,7 +160,9 @@ window.capturePhoto = () => {
         const sub = document.getElementById('ai-suggestion');
         if(sub) {
             sub.innerText = "Masterpiece Saved!";
-            setTimeout(() => sub.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`, 2000);
+            setTimeout(() => {
+                if(videoTrack) sub.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`;
+            }, 2000);
         }
     }, 'image/jpeg', 1.0);
 };
