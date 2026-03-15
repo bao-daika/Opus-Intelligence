@@ -169,13 +169,18 @@ window.sendMessage = async (overrideText = null) => {
     const input = document.getElementById('ai-input');
     const chatMessages = document.getElementById('chat-messages');
     if (!input || !chatMessages) return;
-    const text = overrideText || input.value.trim();
-    const tempImg = window.currentImage; // LẤY DỮ LIỆU ẢNH (BASE64)
-    if (!text && !tempImg) return;
 
-    addChatMessageUI(text, true, null, tempImg);
+    const text = overrideText || input.value.trim();
+    // 1. Giữ bản sao dữ liệu ảnh để gửi đi, tránh bị xóa mất
+    const tempImgData = window.currentImage; 
+    
+    if (!text && !tempImgData) return;
+
+    // 2. Hiển thị UI ngay lập tức cho sếp
+    addChatMessageUI(text, true, null, tempImgData);
+    
+    // Reset ô nhập liệu
     if (!overrideText) { input.value = ""; input.style.height = '40px'; }
-    window.clearPreview();
 
     const loadingId = "loading-" + Date.now();
     addChatMessageUI("Gallery Curator is thinking...", false, loadingId);
@@ -185,8 +190,10 @@ window.sendMessage = async (overrideText = null) => {
         let reply = "I'm analyzing, Boss...";
         
         if (typeof chatbotBrain !== 'undefined') {
-            // SỬA TẠI ĐÂY: Truyền tempImg vào để não Gemini thực sự nhìn thấy ảnh
-            reply = await chatbotBrain.processInput(text, currentCoords, tempImg);
+            const hasImage = tempImgData !== null;
+            
+            // 3. Truyền dữ liệu đi (Đảm bảo tempImgData vẫn tồn tại ở đây)
+            reply = await chatbotBrain.processInput(text, currentCoords, hasImage);
         }
         
         const loadingElement = document.getElementById(loadingId);
@@ -194,6 +201,10 @@ window.sendMessage = async (overrideText = null) => {
             loadingElement.classList.remove('animate-pulse', 'italic');
             loadingElement.querySelector('.msg-text').innerText = reply;
         }
+
+        // 4. CHỈ XÓA PREVIEW KHI ĐÃ GỬI XONG THÀNH CÔNG
+        window.clearPreview();
+
     } catch (error) {
         const el = document.getElementById(loadingId);
         if (el) el.querySelector('.msg-text').innerText = "Connection lost, Boss.";

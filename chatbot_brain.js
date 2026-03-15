@@ -40,9 +40,10 @@ const chatbotBrain = {
                     message: input,
                     allSpots: mapContext, 
                     userLocation: currentCoords, 
-                    attachedImage: window.currentImage || null, 
+                    // SỬA ĐÚNG CHỖ NÀY: Dùng biến hasImage (nếu UI truyền tempImgData vào đây)
+                    attachedImage: (typeof hasImage === 'string') ? hasImage : (window.currentImage || null), 
                     deviceId: this.getDeviceId(),
-                    isLensMode: hasImage,
+                    isLensMode: !!hasImage,
                     activeCategory: document.getElementById('header-text')?.innerText || "OPUS GLOBAL"
                 }),
                 signal: controller.signal
@@ -78,3 +79,22 @@ const chatbotBrain = {
 };
 
 console.log("Opus 2027: Elite Photography Assistant Brain Sync Completed.");
+
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA) ---
+
+// 1. Chặn chuột phải
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// 2. Chặn phím tắt DevTools & Save
+document.onkeydown = e => {
+    if (e.keyCode == 123 || 
+        (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+        (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+    ) return false;
+};
+
+// 3. Chặn kéo thả ảnh
+document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
+
+// 4. Phát hiện chụp màn hình
+document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
