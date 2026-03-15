@@ -30,15 +30,17 @@
         .user-location-pulse::after { content: ''; position: absolute; inset: -10px; border: 2px solid var(--cyan); border-radius: 50%; animation: ripple 2s infinite; opacity: 0; }
         @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         
-        /* Chỉ giữ lại Animation cơ bản, CSS chi tiết Chatbox đã dời qua JS */
-        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-
         #opus-lens-container { position: fixed; inset: 0; z-index: 9999; display: none; background: #000; overflow: hidden; }
         #camera-feed { width: 100%; height: 100%; object-fit: cover; }
         .lens-overlay { position: absolute; inset: 0; pointer-events: none; border: 40px solid rgba(2, 6, 23, 0.8); }
         .grid-line-h { position: absolute; left: 0; width: 100%; height: 1px; background: rgba(251, 191, 36, 0.3); }
         .grid-line-v { position: absolute; top: 0; width: 1px; height: 100%; background: rgba(251, 191, 36, 0.3); }
+        
         #sidebar { position: absolute; top: 100px; left: 20px; z-index: 4000; width: calc(100% - 40px); max-width: 280px; max-height: 60vh; overflow-y: auto; }
+        
+        /* FIX LỖI TIÊU ĐỀ MOBILE */
+        .header-container { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+
         .leaflet-popup-content-wrapper { background: rgba(2, 6, 23, 0.95) !important; border: 1px solid var(--gold); border-radius: 20px !important; padding: 0 !important; overflow: hidden; }
         .leaflet-popup-content { margin: 0 !important; width: 200px !important; }
         .popup-media-container { width: 100%; height: 130px; position: relative; overflow: hidden; border-radius: 20px 20px 0 0; }
@@ -67,6 +69,9 @@
             50% { transform: scale(1.15); box-shadow: inset 0 0 20px var(--gold); }
         }
         .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); }
+        
+        /* Reset Chat window style để ưu tiên chatbot_ui.js điều khiển */
+        #chat-window { display: none; }
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -76,14 +81,14 @@
         <div class="lens-overlay">
             <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
             <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
-            <div class="absolute top-10 left-1/2 -translate-x-1/2 text-center">
+            <div class="absolute top-10 left-1/2 -translate-x-1/2 text-center w-full">
                 <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">AI Composition Active</p>
                 <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning...</p>
             </div>
             <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-10 pointer-events-auto">
                 <button id="close-lens-btn" class="p-4 glass rounded-full text-white"><i data-lucide="x"></i></button>
                 <div id="capture-btn" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-90 transition"><div class="w-16 h-16 rounded-full bg-white"></div></div>
-                <button id="flash-btn" class="p-4 glass rounded-full text-yellow-500 transition-all active:scale-95">
+                <button id="flash-btn" onclick="if(window.toggleFlash) window.toggleFlash()" class="p-4 glass rounded-full text-yellow-500 transition-all active:scale-95">
                     <i data-lucide="zap"></i>
                 </button>
             </div>
@@ -92,21 +97,25 @@
     </div>
 
     <div class="relative h-full w-full">
-        <div class="absolute top-0 left-0 right-0 z-[4000] p-4 flex justify-between items-center pointer-events-none">
-            <div class="flex gap-2 pointer-events-auto">
-                <button onclick="toggleMenu()" class="p-4 glass rounded-2xl text-white"><i data-lucide="align-left" class="w-5 h-5"></i></button>
-                <button id="auth-btn" class="glass px-3 py-2 rounded-2xl border border-yellow-500/30 flex items-center gap-2">
-                    <div id="auth-status-icon" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                    <span id="auth-text" class="text-[8px] font-black text-white uppercase tracking-widest">Join Elite</span>
-                </button>
+        <div class="absolute top-0 left-0 right-0 z-[4000] p-4 pointer-events-none">
+            <div class="header-container">
+                <div class="flex gap-2 pointer-events-auto">
+                    <button onclick="toggleMenu()" class="p-3 glass rounded-2xl text-white"><i data-lucide="align-left" class="w-5 h-5"></i></button>
+                    <button id="auth-btn" class="glass px-2 py-1 rounded-2xl border border-yellow-500/30 flex items-center gap-2">
+                        <div id="auth-status-icon" class="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
+                        <span id="auth-text" class="text-[7px] font-black text-white uppercase tracking-tighter">Join Elite</span>
+                    </button>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="px-3 py-0.5 rounded-full glass text-[8px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Opus Intelligence</div>
+                    <div class="text-white font-light text-lg tracking-[0.1em] uppercase text-center" id="header-text">...</div>
+                </div>
+                <div class="flex justify-end pointer-events-auto">
+                    <button id="tracking-btn" onclick="toggleTracking()" class="p-3 glass rounded-2xl text-yellow-400">
+                        <i data-lucide="map-pin" class="w-5 h-5"></i>
+                    </button>
+                </div>
             </div>
-            <div class="flex flex-col items-center">
-                <div class="px-3 py-0.5 rounded-full glass text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Opus Intelligence</div>
-                <div class="text-white font-light text-xl tracking-[0.2em] uppercase" id="header-text">...</div>
-            </div>
-            <button id="tracking-btn" onclick="toggleTracking()" class="p-4 glass rounded-2xl text-yellow-400 pointer-events-auto">
-                <i data-lucide="map-pin" class="w-5 h-5"></i>
-            </button>
         </div>
 
         <div id="sidebar" class="hidden glass rounded-[30px] p-6 text-white">
@@ -114,34 +123,28 @@
             <div id="dynamic-menu" class="space-y-3"></div>
         </div>
 
-       <div id="chat-window" class="glass p-6 text-white">
-    <div class="flex justify-between items-center mb-2">
-        <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Photography Assistant</span>
-        <button id="close-chat-btn"><i data-lucide="x" class="w-4 h-4"></i></button>
-    </div>
-
-    <div class="mb-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-        <p class="text-[10px] text-white/70 leading-relaxed tracking-tight">
-            Hello! I can answer any <span class="text-yellow-500/80 font-bold">photography-related questions</span>. 
-            Feel free to upload your photos for expert advice on <span class="text-white font-bold">Urban</span> and <span class="text-white font-bold">Nature</span> shots. 
-            <br><br>
-            Need the perfect frame? Just tap <span class="text-yellow-500/80 font-bold">Lens</span> to activate the Camera for real-time assistance.
-        </p>
-    </div>
-
-    <div id="chat-messages" class="scrollbar-hide overflow-y-auto flex-1 pr-1" style="max-height: 300px;">
+        <div id="chat-window" class="glass text-white">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Photography Assistant</span>
+                <button id="close-chat-btn"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="mb-4 p-4 bg-white/5 rounded-2xl border border-white/5 mt-2">
+                <p class="text-[10px] text-white/70 leading-relaxed tracking-tight">
+                    Hello! I can answer any <span class="text-yellow-500/80 font-bold">photography</span> questions. 
+                    Upload photos or tap <span class="text-yellow-500/80 font-bold">Lens</span> for assistance.
+                </p>
+            </div>
+            <div id="chat-messages" class="scrollbar-hide flex-1"></div>
+            <div class="flex gap-2 items-end mt-4 pt-4 border-t border-white/5">
+                <div class="flex-1">
+                    <textarea id="ai-input" placeholder="Message..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none resize-none" rows="1"></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button id="send-btn" class="px-4 h-10 bg-yellow-500 text-black rounded-xl font-black text-[10px] uppercase">Send</button>
+                    <button id="lens-btn" class="px-4 h-10 glass text-yellow-500 rounded-xl font-black text-[10px] uppercase border border-yellow-500/20">Lens</button>
+                </div>
+            </div>
         </div>
-
-    <div class="flex gap-2 items-end mt-4 pt-4 border-t border-white/5">
-        <div class="flex-1 flex flex-col gap-2">
-            <textarea id="ai-input" placeholder="Message Photography Assistant..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none resize-none" rows="1"></textarea>
-        </div>
-        <div class="flex gap-2">
-            <button id="send-btn" class="px-4 h-10 bg-yellow-500 text-black rounded-xl font-black text-[10px] uppercase hover:bg-yellow-400 transition-colors">Send</button>
-            <button id="lens-btn" class="px-4 h-10 glass text-yellow-500 rounded-xl font-black text-[10px] uppercase border border-yellow-500/20 hover:bg-yellow-500/10 transition-colors">Lens</button>
-        </div>
-    </div>
-</div>
 
         <div id="map"></div>
         
@@ -162,17 +165,10 @@
     <script src="chatbot_ui.js"></script>
 
     <script>
- // --- 1. CORE STATE (FIREBASE PAUSED - AI ACTIVE) ---
-        // Sếp chỉ tạm dừng Firebase, nhưng PHẢI giữ lại biến activeCategoryObject
-        /* const firebaseConfig = { apiKey: "AIzaSy...", authDomain: "gymfueltoronto-49bd2.firebaseapp.com", databaseURL: "https://gymfueltoronto-49bd2-default-rtdb.firebaseio.com", projectId: "gymfueltoronto-49bd2" };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth(); 
-        */
-
-        // ĐÂY LÀ DÒNG SỐNG CÒN: Phải có nó thì Menu Urban mới hiện ra được thưa sếp!
+        // --- 1. CORE STATE ---
         let activeCategoryObject = (typeof menuConfig !== 'undefined') ? menuConfig[0] : { id: 'urban', dataKey: 'Urban', label: 'Urban' };
 
-        // --- 2. MAP INIT (GIỮ NGUYÊN TUYỆT ĐỐI) ---
+        // --- 2. MAP INIT ---
         const map = L.map('map', { zoomControl: false, attributionControl: false, minZoom: 3, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0 }).setView([25, 10], 3);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true }).addTo(map);
         let markerClusterGroup = L.markerClusterGroup({ 
@@ -180,7 +176,7 @@
             iconCreateFunction: (c) => L.divIcon({html:`<div class="glass flex items-center justify-center rounded-full w-10 h-10 border border-yellow-500 text-yellow-500 font-black text-[10px]">${c.getChildCount()}</div>`, className:'custom-cluster', iconSize:[40,40]})
         }).addTo(map);
 
-        // --- 3. DYNAMIC LOGIC (GIỮ NGUYÊN TUYỆT ĐỐI) ---
+        // --- 3. DYNAMIC LOGIC ---
         const getAllSpots = () => [
             ...(typeof urbanSpots!=='undefined'?urbanSpots:[]),
             ...(typeof natureSpots!=='undefined'?natureSpots:[]),
@@ -210,7 +206,7 @@
                     <i data-lucide="${item.icon}" class="w-4 h-4"></i>
                     <span class="text-[9px] font-bold uppercase tracking-widest">${item.label}</span>
                 </button>`).join('');
-            lucide.createIcons();
+            if(window.lucide) lucide.createIcons();
         }
 
         window.handleMenuClick = (id) => { 
@@ -221,25 +217,20 @@
             renderMenu(); 
         }
 
-        // --- 4. CÁC HÀM TIỆN ÍCH ---
         window.toggleMenu = () => document.getElementById('sidebar').classList.toggle('hidden');
         window.goToDetail = (id) => { const s = getAllSpots().find(x=>x.id===id); if(s){localStorage.setItem("selectedSpot", JSON.stringify(s)); window.location.href="detail.html";} };
 
-        // --- 5. INITIALIZE ---
         window.addEventListener('load', () => { 
             document.getElementById('header-text').innerText = activeCategoryObject.label;
             renderMenu(); 
             renderMarkers(); 
-            lucide.createIcons(); 
+            if(window.lucide) lucide.createIcons(); 
         });
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
+        // --- HỆ THỐNG PHÒNG THỦ ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
-        document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
-        document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
 
-        // Logic Location
         let userMarker = null, isTracking = false, watchId = null;
         const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="user-location-pulse"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
         window.toggleTracking = () => {

@@ -3,43 +3,51 @@
 (function injectGeminiStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* ĐẢM BẢO VỊ TRÍ CHUẨN GIỮA MÀN HÌNH VÀ RESPONSIVE */
+        /* ĐẢM BẢO VỊ TRÍ CHUẨN GIỮA MÀN HÌNH VÀ RESPONSIVE TỐI ƯU */
         #chat-window { 
-            position: absolute !important;
-            bottom: 100px !important;
+            position: fixed !important; /* Đổi sang fixed để bám màn hình mobile chuẩn hơn */
+            bottom: 20px !important; /* Hạ thấp để không chèn Header trên iPhone 6 */
             left: 50% !important;
             transform: translateX(-50%) !important;
-            width: calc(100% - 40px) !important;
+            width: 92% !important; 
             max-width: 500px !important;
-            max-height: 70vh !important; 
+            height: auto !important;
+            max-height: 75vh !important; 
             display: none; 
             flex-direction: column; 
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-            z-index: 5000;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 9999 !important; /* Đảm bảo luôn nổi trên map */
+            border-radius: 28px !important;
+            padding: 16px !important;
+            overflow: hidden;
         }
 
-        /* MOBILE OPTIMIZATION */
-        @media (max-width: 640px) {
+        /* TỐI ƯU CHO MOBILE NHỎ (IPHONE 6/7/8) */
+        @media (max-width: 640px) or (max-height: 670px) {
             #chat-window {
-                bottom: 90px !important;
-                max-height: 65vh !important;
-                width: calc(100% - 30px) !important;
+                bottom: 15px !important;
+                max-height: 80vh !important;
+                padding: 12px !important;
             }
+            .mb-4.p-4.bg-white/5 { padding: 8px !important; margin-bottom: 8px !important; }
         }
 
+        /* FIX LỖI SCROLL: DỒN TIN NHẮN VÀ TẠO KHÔNG GIAN TRƯỢT */
         #chat-messages { 
-            flex: 1 !important; 
+            flex: 1 1 auto !important; 
             overflow-y: auto !important; 
             display: flex; 
             flex-direction: column; 
             gap: 12px;
             padding-right: 5px;
+            -webkit-overflow-scrolling: touch; /* Giúp iPhone scroll mượt */
+            min-height: 100px;
         }
 
         /* LOGIC TỰ XUỐNG DÒNG & CO GIÃN CỦA TEXTAREA */
         #ai-input {
             min-height: 40px;
-            max-height: 150px; 
+            max-height: 120px; 
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px;
@@ -58,8 +66,11 @@
         #ai-input:focus { border-color: rgba(251, 191, 36, 0.5); }
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        #chat-messages::-webkit-scrollbar { width: 4px; }
-        #chat-messages::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.2); border-radius: 10px; }
+        #chat-messages::-webkit-scrollbar { width: 3px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.3); border-radius: 10px; }
+
+        /* Đảm bảo nội dung không bị tràn */
+        .glass { overflow: hidden; }
     `;
     document.head.appendChild(style);
 })();
@@ -70,7 +81,6 @@ window.currentImage = null;
 document.addEventListener('DOMContentLoaded', () => {
     const oldInput = document.getElementById('ai-input');
     
-    // Chuyển đổi từ INPUT sang TEXTAREA để có hiệu ứng xuống dòng chuẩn AI
     if (oldInput && oldInput.tagName === 'INPUT') {
         const textarea = document.createElement('textarea');
         textarea.id = oldInput.id;
@@ -115,13 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // B. XỬ LÝ TỰ ĐỘNG XUỐNG DÒNG (DỒN TIN NHẮN LÊN TRÊN)
+    // B. XỬ LÝ TỰ ĐỘNG XUỐNG DÒNG
     if (input) {
         input.addEventListener('input', function() {
             this.style.height = 'auto';
             let newHeight = this.scrollHeight;
-            this.style.height = (newHeight > 150 ? 150 : newHeight) + 'px';
-            this.style.overflowY = newHeight > 150 ? 'scroll' : 'hidden';
+            this.style.height = (newHeight > 120 ? 120 : newHeight) + 'px';
+            this.style.overflowY = newHeight > 120 ? 'scroll' : 'hidden';
             
             const msgBox = document.getElementById('chat-messages');
             if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
@@ -135,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // C. GÁN SỰ KIỆN (KHÔNG CÓ VOICE)
     if (sendBtn) sendBtn.onclick = () => window.sendMessage();
     if (aiCore) aiCore.onclick = () => window.toggleChat();
     if (closeChatBtn) closeChatBtn.onclick = () => window.toggleChat();
@@ -152,13 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // 2. PREVIEW ẢNH
 function showImagePreview(src) {
     let previewBox = document.getElementById('image-preview-container');
-    const inputContainer = document.querySelector('#chat-window > div:last-child');
+    const inputArea = document.querySelector('#chat-window > div:last-child');
     
-    if (!previewBox && inputContainer) {
+    if (!previewBox && inputArea) {
         previewBox = document.createElement('div');
         previewBox.id = 'image-preview-container';
-        previewBox.className = "flex p-3 gap-2 bg-white/5 border-t border-white/10";
-        inputContainer.parentNode.insertBefore(previewBox, inputContainer);
+        previewBox.className = "flex p-3 gap-2 bg-white/5 border-t border-white/10 flex-shrink-0";
+        inputArea.parentNode.insertBefore(previewBox, inputArea);
     }
     
     previewBox.innerHTML = `
@@ -187,21 +196,23 @@ window.toggleChat = () => {
     if (isHidden) {
         const input = document.getElementById('ai-input');
         if (input) setTimeout(() => input.focus(), 200);
+        const msgBox = document.getElementById('chat-messages');
+        if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
     }
 };
 
-// 4. VISION AI (LENS)
+// 4. VISION AI (LENS) - Giữ nguyên hoàn hảo cũ
 window.activateAILens = async () => {
     const lensContainer = document.getElementById('opus-lens-container');
     if(lensContainer) lensContainer.style.display = 'block';
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
+            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
         });
         const video = document.getElementById('camera-feed');
         if(video) { video.srcObject = stream; video.play(); }
     } catch (err) {
-        alert("Sếp ơi, Mentor cần quyền camera để nhìn thế giới!");
+        alert("Sếp ơi, hãy cấp quyền camera!");
         window.stopAILens();
     }
 };
@@ -220,14 +231,14 @@ window.capturePhoto = async () => {
     if(!video || !canvas) return;
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     window.currentImage = dataUrl;
     window.stopAILens();
     if(document.getElementById('chat-window').style.display !== 'flex') window.toggleChat();
     showImagePreview(dataUrl);
 };
 
-// 6. SEND MESSAGE (CHỈ DÙNG TEXT)
+// 6. SEND MESSAGE (CHỈ DÙNG TEXT - ĐÃ FIX LỖI COORDINATES)
 window.sendMessage = async (overrideText = null) => {
     const input = document.getElementById('ai-input');
     const chatMessages = document.getElementById('chat-messages');
@@ -248,7 +259,6 @@ window.sendMessage = async (overrideText = null) => {
     addChatMessageUI("Mentor is thinking...", false, loadingId);
 
     try {
-        // Lấy tọa độ an toàn (Fix lỗi sếp gặp ở bước trước)
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         let reply = "Em đang học hỏi sếp ơi...";
         
@@ -259,33 +269,30 @@ window.sendMessage = async (overrideText = null) => {
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
             loadingElement.classList.remove('animate-pulse', 'italic');
-            loadingElement.innerHTML = `<div class="text-[10px] text-yellow-500 font-bold mb-1 uppercase">Mentor</div><div class="text-[11px]">${reply}</div>`; 
+            loadingElement.innerHTML = `<div class="text-[10px] text-yellow-500 font-black mb-1 uppercase tracking-widest">Mentor</div><div class="text-[11px] leading-relaxed">${reply}</div>`; 
         }
     } catch (error) {
-        console.error("Opus UI Error:", error);
         const loadingElement = document.getElementById(loadingId);
-        if (loadingElement) {
-            loadingElement.innerText = "Lỗi kết nối vệ tinh, thưa Sếp.";
-        }
+        if (loadingElement) loadingElement.innerText = "Lỗi kết nối vệ tinh, thưa Sếp.";
     }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 };
 
-// 7. MESSAGE UI (CHUYÊN BIỆT CHO HIỂN THỊ CHỮ)
+// 7. MESSAGE UI (CHUẨN LUXURY VÀ RESPONSIVE)
 function addChatMessageUI(text, isUser, id = null, imgData = null) {
     const msgBox = document.getElementById('chat-messages');
     if(!msgBox) return;
     const wrapper = document.createElement('div');
     if (id) wrapper.id = id;
     
-    wrapper.className = isUser ? "flex flex-col items-end mb-4 w-full" : "flex flex-col items-start mb-4 w-full";
+    wrapper.className = isUser ? "flex flex-col items-end mb-4 w-full" : "flex flex-col items-start mb-4 w-full flex-shrink-0";
 
     if (isUser) {
         wrapper.innerHTML = `
-            <div class="glass p-3 rounded-[20px] rounded-tr-none border-yellow-500/30 text-white shadow-xl max-w-[85%] overflow-hidden">
+            <div class="glass p-3 rounded-[20px] rounded-tr-none border-yellow-500/30 text-white shadow-xl max-w-[85%]">
                 ${imgData ? `<img src="${imgData}" class="w-full rounded-lg mb-2 border border-white/10 object-contain max-h-48">` : ''}
                 <div class="text-[11px] leading-relaxed break-words whitespace-pre-wrap">${text}</div>
             </div>
-            <span class="text-[7px] font-black uppercase tracking-widest text-yellow-500/50 mt-1 mr-2">Master</span>
         `;
     } else {
         if (id && id.startsWith('loading-')) wrapper.classList.add('animate-pulse', 'italic');
@@ -297,5 +304,5 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     }
     
     msgBox.appendChild(wrapper);
-    msgBox.scrollTo({ top: msgBox.scrollHeight, behavior: 'smooth' });
+    msgBox.scrollTop = msgBox.scrollHeight;
 }
