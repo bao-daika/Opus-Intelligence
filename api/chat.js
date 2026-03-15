@@ -1,24 +1,15 @@
-import { aiKnowledge } from './Knowledge.js'; 
-import admin from "firebase-admin";
-
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-        databaseURL: "https://gymfueltoronto-49bd2-default-rtdb.firebaseio.com/"
-    });
-}
-const db = admin.database();
+// --- OPUS INTELLIGENCE: PURE AI CORE (SYNC 2027) ---
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ reply: "Access Denied, Boss!" });
 
     const apiKey = process.env.GEMINI_API_KEY;
-    
-    // 1. ĐỒNG BỘ DATA TỪ FRONT-END
-    const { message, allSpots, attachedImage, deviceId, activeCategory, isLensMode } = req.body; 
+    if (!apiKey) return res.status(500).json({ reply: "Missing Gemini API Key, Master!" });
 
-    // 2. ENDPOINT MỚI NHẤT: GEMINI 3.1 FLASH LITE PREVIEW
-    // Bản này là hàng "nóng" nhất từ Google, tối ưu cho vibe coding 2027
+    // 1. NHẬN DATA TỪ FRONT-END
+    const { message, allSpots, attachedImage, activeCategory, isLensMode } = req.body; 
+
+    // 2. ENDPOINT GEMINI 3.1 FLASH LITE PREVIEW (Vibe 2027)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
 
     const torontoTime = new Date().toLocaleString("en-US", {
@@ -26,26 +17,28 @@ export default async function handler(req, res) {
         hour12: true, hour: 'numeric', minute: 'numeric', weekday: 'long'
     });
 
-    // 3. SYSTEM INSTRUCTION (Nạp kiến thức AI Knowledge của sếp)
+    // 3. SYSTEM INSTRUCTION (Nạp luật chặn nội dung bẩn ngay tại đây)
     const systemInstruction = `
-        YOU ARE OPUS VISIONARY AI (GEMINI 3.1 FLASH LITE).
-        ROLE: World-class Photography Mentor for Urban & Nature styles.
-        STRICT POLICY: 
-        - ONLY analyze Urban/Nature photos. 
-        - IMMEDIATELY REJECT: Nudes, trash, waste, feces, or any offensive content. 
-        - Reply to Master/Sếp in Vietnamese. Style: Elite, sharp, minimalistic.
+        YOU ARE OPUS VISIONARY AI. 
+        Role: Luxury Photography Mentor (Urban & Nature Specialist).
+        
+        STRICT RULES:
+        - ONLY analyze photos of Architecture (Urban) and Landscapes (Nature).
+        - REJECT: Nudity, filth, waste, or meaningless/offensive images. If detected, say: "Sếp ơi, bức ảnh này không phù hợp với tiêu chuẩn nghệ thuật của Opus."
+        - Style: High-end, elite, minimalistic. 
+        - Language: Vietnamese (Tiếng Việt). Call the user "Sếp" or "Master".
         
         CONTEXT:
-        - Toronto Time: ${torontoTime}
-        - Knowledge Base: ${JSON.stringify(aiKnowledge)}
-        - Map Context: ${JSON.stringify(allSpots)}
-        - Lens Mode: ${isLensMode ? 'ON' : 'OFF'}
+        - Time: ${torontoTime}
+        - Current Category: ${activeCategory}
+        - Spots Data: ${JSON.stringify(allSpots)}
+        - Lens Mode: ${isLensMode ? 'ACTIVE' : 'OFF'}
     `;
 
     try {
-        // 4. CẤU TRÚC PAYLOAD ĐA PHƯƠNG THỨC (PHẢI DÙNG SNAKE_CASE)
-        const parts = [{ text: `${systemInstruction}\n\nUser Message: ${message || "Analyzing visual input..."}` }];
+        const parts = [{ text: `${systemInstruction}\n\nUser Message: ${message || "Analyzing visual..."}` }];
 
+        // Xử lý ảnh gửi kèm
         if (attachedImage && attachedImage.includes('base64,')) {
             parts.push({
                 inline_data: { 
@@ -63,34 +56,19 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // 5. XỬ LÝ FALLBACK (Nếu bản Lite bận, dùng bản Flash thường)
+        // Xử lý lỗi từ Google API
         if (data.error) {
-            console.warn("Switching to Standard Flash...");
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
-            const fbRes = await fetch(fallbackUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: parts }] })
-            });
-            const fbData = await fbRes.json();
-            if (fbData.error) throw new Error(fbData.error.message);
-            return res.status(200).json({ reply: fbData.candidates[0].content.parts[0].text });
+            console.error("Gemini Error:", data.error);
+            return res.status(400).json({ reply: "Sếp ơi, bộ não AI đang bận xử lý bối cảnh khác. Sếp thử lại nhé!" });
         }
 
         const aiReply = data.candidates[0].content.parts[0].text;
 
-        // 6. LƯU TRỰ FIREBASE (Giữ nguyên trí nhớ cho sếp)
-        await db.ref('market_insights').push({
-            user_msg: message || "Visual Scan",
-            ai_reply: aiReply,
-            deviceId: deviceId || "unknown",
-            timestamp: admin.database.ServerValue.TIMESTAMP
-        });
-
+        // 4. TRẢ KẾT QUẢ NGAY (Bỏ qua lưu trữ Firebase)
         return res.status(200).json({ reply: aiReply });
 
     } catch (error) {
-        console.error("Opus AI Failure:", error);
-        return res.status(500).json({ reply: "Sếp ơi, bản Preview đang bảo trì Neural Link. Sếp thử lại nhé!" });
+        console.error("Opus Failure:", error);
+        return res.status(500).json({ reply: "Lỗi kết nối vệ tinh, thưa Sếp. Neural Link đã bị ngắt!" });
     }
 }
