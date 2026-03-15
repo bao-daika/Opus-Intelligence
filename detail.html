@@ -12,51 +12,18 @@
         body { background: #020617; color: white; font-family: 'Inter', sans-serif; margin: 0; scroll-behavior: smooth; overflow-x: hidden; }
         .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(15px); border: 1px solid rgba(251, 191, 36, 0.1); }
         
-        /* 2027 Cinematic Slider */
-        .photo-stage { 
-            height: 100vh; width: 100vw; position: relative; background: #000; 
-            overflow: hidden;
-        }
-        
-        .slider-container {
-            display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .slide-item {
-            min-width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-        }
-
-        .master-img { 
-            max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; 
-            box-shadow: 0 0 100px rgba(0,0,0,0.8);
-        }
-
-        .slider-nav {
-            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 12px; z-index: 30;
-        }
+        .photo-stage { height: 100vh; width: 100vw; position: relative; background: #000; overflow: hidden; }
+        .slider-container { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .slide-item { min-width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .master-img { max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; box-shadow: 0 0 100px rgba(0,0,0,0.8); }
+        .slider-nav { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 30; }
         .nav-dot { width: 40px; height: 2px; background: rgba(255,255,255,0.1); transition: all 0.3s; cursor: pointer; }
         .nav-dot.active { background: #fbbf24; box-shadow: 0 0 15px #fbbf24; }
 
-        .info-section { 
-            background: #020617; min-height: 50vh; position: relative; 
-            z-index: 20; border-top: 1px solid rgba(251, 191, 36, 0.1); 
-        }
-
-        .title-minimal { 
-            font-size: clamp(1.5rem, 5vw, 3.5rem); font-weight: 200; 
-            letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; 
-        }
-        
+        .info-section { background: #020617; min-height: 50vh; position: relative; z-index: 20; border-top: 1px solid rgba(251, 191, 36, 0.1); }
+        .title-minimal { font-size: clamp(1.5rem, 5vw, 3.5rem); font-weight: 200; letter-spacing: -0.02em; text-transform: uppercase; line-height: 1; }
         .comment-node { border-left: 1px solid rgba(251, 191, 36, 0.1); padding-left: 1.5rem; margin-bottom: 2rem; }
-        .author-badge { 
-            background: linear-gradient(90deg, #fbbf24, #d97706); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-            font-weight: 900; 
-        }
-
-        /* Bảo mật hình ảnh cấp cao */
+        .author-badge { background: linear-gradient(90deg, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
         .no-select { pointer-events: none; user-select: none; -webkit-user-drag: none; }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -73,12 +40,11 @@
         const spot = JSON.parse(localStorage.getItem("selectedSpot"));
         if(!spot) { window.location.href = "index.html"; }
 
-        // Chuẩn bị mảng ảnh (Nếu spot.images không có, dùng spot.imageUrl làm mảng 1 phần tử)
         const photoGallery = spot.images || [spot.imageUrl];
         let currentSlide = 0;
 
-        // 2. ĐỊNH VỊ TOÀN CẦU
-        const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+        // 2. ĐỊNH VỊ TOÀN CẦU (Đã fix lỗi $ của sếp)
+        const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
         const renderPage = () => {
             const container = document.getElementById('app-interface');
@@ -122,7 +88,7 @@
                                     <h1 class="title-minimal italic">${spot.name}</h1>
                                     <div class="h-[1px] w-24 bg-yellow-500/30"></div>
                                     <p class="text-white/50 leading-relaxed text-sm max-w-md font-light">
-                                        ${spot.description || "Captured at the intersection of reality and art. This Opus coordinate represents a pinnacle of cinematic photography."}
+                                        ${spot.description || "Captured at the intersection of reality and art."}
                                     </p>
                                 </div>
 
@@ -155,12 +121,7 @@
                                             <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">F</div>
                                             <span class="text-[9px] text-white/50 uppercase tracking-tighter">Elite_Member_88</span>
                                         </div>
-                                        <p class="text-sm text-white/70 font-light ml-9">Góc này sếp lướt sang ảnh thứ 2 thấy ánh sáng đổ đẹp quá!</p>
-                                        
-                                        <div class="ml-9 mt-8 border-l-2 border-yellow-500/30 pl-8">
-                                            <p class="text-[9px] author-badge uppercase mb-2 tracking-widest">Opus Creator <span class="text-white/20 ml-2 italic">● Author</span></p>
-                                            <p class="text-sm text-white/90 font-light leading-relaxed">Đúng rồi sếp, tấm đó mình đợi mây tan mới bấm máy được.</p>
-                                        </div>
+                                        <p class="text-sm text-white/70 font-light ml-9">Góc này lướt sang ảnh thứ 2 thấy ánh sáng đổ đẹp quá!</p>
                                     </div>
                                 </div>
 
@@ -178,23 +139,21 @@
                     </div>
                 </div>
             `;
-
-            // Khởi tạo Swipe hỗ trợ Mobile
             initSwipe();
         };
 
-        // 3. LOGIC SLIDER
         window.goToSlide = (index) => {
             currentSlide = index;
             const slider = document.getElementById('main-slider');
             const dots = document.querySelectorAll('.nav-dot');
-            slider.style.transform = `translateX(-${currentSlide * 100}vw)`;
+            if(slider) slider.style.transform = `translateX(-${currentSlide * 100}vw)`;
             dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
         };
 
         function initSwipe() {
             let startX = 0;
             const stage = document.getElementById('stage');
+            if(!stage) return;
             stage.addEventListener('touchstart', e => startX = e.touches[0].clientX);
             stage.addEventListener('touchend', e => {
                 let endX = e.changedTouches[0].clientX;
@@ -203,7 +162,6 @@
             });
         }
 
-        // 4. XỬ LÝ COMMENT
         window.handlePost = () => {
             const msg = document.getElementById('user-comment').value;
             if(!msg.trim()) return;
@@ -213,7 +171,7 @@
 
         renderPage();
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA) ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;

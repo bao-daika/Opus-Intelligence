@@ -49,7 +49,6 @@
         }
         .btn-zoom.active { border-color: var(--gold); color: var(--gold); background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
 
-        /* SỬA TẠI ĐÂY: Sidebar nằm dưới nút Hamburger (cách mép trên ~85px) */
         #sidebar { 
             position: absolute; 
             top: 85px; 
@@ -74,25 +73,23 @@
         .lens-glass-reflection { position: absolute; top: 20%; left: 20%; width: 15px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 50%; transform: rotate(-45deg); }
         @keyframes lensZoom { 0%, 100% { transform: scale(1); box-shadow: inset 0 0 5px var(--gold); } 50% { transform: scale(1.15); box-shadow: inset 0 0 20px var(--gold); } }
         .marker-glow { 
-    width: 12px; 
-    height: 12px; 
-    background: var(--gold); 
-    border-radius: 50%; 
-    box-shadow: 0 0 15px var(--gold);
-    /* Thêm dòng này để kích hoạt chớp tắt */
-    animation: opus-pulse 2s infinite ease-in-out;
-}
+            width: 12px; 
+            height: 12px; 
+            background: var(--gold); 
+            border-radius: 50%; 
+            box-shadow: 0 0 15px var(--gold);
+            animation: opus-pulse 2s infinite ease-in-out;
+        }
 
-/* Định nghĩa nhịp thở của AI 2027 */
-@keyframes opus-pulse {
-    0% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
-    50% { transform: scale(1.5); opacity: 0.7; box-shadow: 0 0 20px var(--gold); }
-    100% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
-}
+        @keyframes opus-pulse {
+            0% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
+            50% { transform: scale(1.5); opacity: 0.7; box-shadow: 0 0 20px var(--gold); }
+            100% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
+        }
         #chat-window { display: none; }
     </style>
 </head>
-<body oncontextmenu="return false;"> 
+<body> 
 
     <div id="opus-lens-container">
         <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
@@ -196,7 +193,25 @@
     <script src="chatbot_ui.js"></script>
 
     <script>
-        // LOGIC GIỮ NGUYÊN 100%
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
+        // 1. Chặn chuột phải
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // 2. Chặn phím tắt DevTools & Save
+        document.onkeydown = e => {
+            if (e.keyCode == 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+                (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+            ) return false;
+        };
+        
+        // 3. Chặn kéo thả ảnh & video
+        document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
+        
+        // 4. Phát hiện chụp màn hình & Clear Clipboard
+        document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
+
+        // --- LOGIC VẬN HÀNH GIỮ NGUYÊN 100% ---
         document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
         let lastTouchEnd = 0;
         document.addEventListener('touchend', (e) => {
@@ -251,9 +266,6 @@
             document.getElementById('header-text').innerText = activeCategoryObject.label;
             renderMenu(); renderMarkers(); if(window.lucide) lucide.createIcons(); 
         });
-
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
 
         let userMarker = null, isTracking = false, watchId = null;
         const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="user-location-pulse"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });

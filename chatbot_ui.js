@@ -81,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChatBtn = document.getElementById('close-chat-btn');
     const lensBtn = document.getElementById('lens-btn');
     
-    // NÚT UPLOAD ẢNH
     const inputWrapper = input ? input.parentElement : null;
     if (inputWrapper && !document.getElementById('chat-upload-btn')) {
         const uploadTrigger = document.createElement('button');
@@ -124,21 +123,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- LIÊN KẾT HỆ THỐNG MỚI ---
     if (sendBtn) sendBtn.onclick = () => window.sendMessage();
     if (aiCore) aiCore.onclick = () => window.toggleChat();
     if (closeChatBtn) closeChatBtn.onclick = () => window.toggleChat();
-    
-    // Nút Lens trong Chat sẽ gọi sang CameraAI.js
     if (lensBtn) lensBtn.onclick = () => {
-        window.toggleChat(); // Đóng chat trước khi mở camera cho đỡ vướng
+        window.toggleChat();
         if(window.activateAILens) window.activateAILens();
     };
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
 });
 
-// PREVIEW & CHAT LOGIC (GIỮ LẠI)
 function showImagePreview(src) {
     let previewBox = document.getElementById('image-preview-container');
     const inputArea = document.querySelector('#chat-window > div:last-child');
@@ -175,7 +170,7 @@ window.sendMessage = async (overrideText = null) => {
     const chatMessages = document.getElementById('chat-messages');
     if (!input || !chatMessages) return;
     const text = overrideText || input.value.trim();
-    const tempImg = window.currentImage;
+    const tempImg = window.currentImage; // LẤY DỮ LIỆU ẢNH (BASE64)
     if (!text && !tempImg) return;
 
     addChatMessageUI(text, true, null, tempImg);
@@ -187,10 +182,13 @@ window.sendMessage = async (overrideText = null) => {
 
     try {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
-        let reply = "I'm analyzing the map, Sir...";
+        let reply = "I'm analyzing, Boss...";
+        
         if (typeof chatbotBrain !== 'undefined') {
-            reply = await chatbotBrain.processInput(text, currentCoords, !!tempImg);
+            // SỬA TẠI ĐÂY: Truyền tempImg vào để não Gemini thực sự nhìn thấy ảnh
+            reply = await chatbotBrain.processInput(text, currentCoords, tempImg);
         }
+        
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
             loadingElement.classList.remove('animate-pulse', 'italic');
@@ -198,7 +196,7 @@ window.sendMessage = async (overrideText = null) => {
         }
     } catch (error) {
         const el = document.getElementById(loadingId);
-        if (el) el.innerText = "Connection lost, Sir.";
+        if (el) el.querySelector('.msg-text').innerText = "Connection lost, Boss.";
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
 };
