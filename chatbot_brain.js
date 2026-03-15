@@ -51,14 +51,22 @@ const chatbotBrain = {
 
             clearTimeout(timeoutId);
 
-            // 3. XỬ LÝ PHẢN HỒI THEO TỪNG TRẠNG THÁI
-            if (!response.ok) {
-                if (response.status === 413) return "Sếp ơi, bức ảnh này quá nặng, vệ tinh Opus không tải nổi. Sếp chụp lại hoặc chọn ảnh nhẹ hơn nhé!";
-                if (response.status === 403 || response.status === 422) {
-                    return "Sếp ơi, hình ảnh hoặc nội dung này không phù hợp với tiêu chuẩn Urban & Nature cao cấp của Opus. Em xin phép từ chối để bảo vệ 'vibe' nghệ thuật của mình ạ!";
-                }
-                throw new Error("Neural link fragmented.");
-            }
+            // 3. XỬ LÝ PHẢN HỒI THEO TỪNG TRẠNG THÁI (MULTI-LANGUAGE ELITE)
+if (!response.ok) {
+    const isVN = navigator.language.startsWith('vi');
+
+    if (response.status === 413) {
+        return isVN 
+            ? "Sếp ơi, bức ảnh này quá nặng, vệ tinh Opus không tải nổi. Sếp chụp lại hoặc chọn ảnh nhẹ hơn nhé!" 
+            : "Boss, this image is too heavy for the Opus satellite. Please capture a lighter version!";
+    }
+    if (response.status === 403 || response.status === 422) {
+        return isVN 
+            ? "Sếp ơi, hình ảnh hoặc nội dung này không phù hợp với tiêu chuẩn Opus. Em xin phép từ chối để bảo vệ 'vibe' nghệ thuật ạ!" 
+            : "Boss, this content doesn't meet Opus Elite standards. I must decline to preserve our artistic vibe!";
+    }
+    throw new Error("Neural link fragmented.");
+}
 
             const data = await response.json();
 

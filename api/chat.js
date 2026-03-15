@@ -12,12 +12,44 @@ export default async function handler(req, res) {
     // 2. ENDPOINT GEMINI 3.1 FLASH LITE PREVIEW (Vibe 2027)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
 
+    // XỬ LÝ ĐA NGÔN NGỮ CHO LỖI (ƯU TIÊN ENGLISH)
+    const lang = req.headers['accept-language']?.toLowerCase() || 'en';
+    const isVN = lang.includes('vi');
+    const isZH = lang.includes('zh');
+    const isFR = lang.includes('fr');
+    const isJP = lang.includes('ja');
+
+    const getErrorReply = (type) => {
+        const errors = {
+            busy: {
+                vi: "Sếp ơi, bộ não AI đang bận xử lý bối cảnh khác. Sếp thử lại nhé!",
+                en: "Boss, the AI core is currently processing another context. Please try again shortly.",
+                zh: "Boss, AI 核心正在处理其他内容。请稍后再试。",
+                fr: "Boss, le noyau IA traite un autre contexte. Veuillez réessayer bientôt.",
+                jp: "Boss, AIコアは別のコンテキストを処理中です。しばらくしてからもう一度お試しください。"
+            },
+            failure: {
+                vi: "Lỗi kết nối vệ tinh, thưa Sếp. Neural Link đã bị ngắt!",
+                en: "Satellite connection error, Boss. Neural Link disconnected!",
+                zh: "卫星连接错误，Boss。神经链路已断开！",
+                fr: "Erreur de connexion satellite, Boss. Liaison neuronale déconnectée !",
+                jp: "衛星接続エラー、Boss。ニューラルリンクが切断されました！"
+            }
+        };
+        const current = errors[type];
+        if (isVN) return current.vi;
+        if (isZH) return current.zh;
+        if (isFR) return current.fr;
+        if (isJP) return current.jp;
+        return current.en; // Mặc định là tiếng Anh nếu không biết User xài gì
+    };
+
     const torontoTime = new Date().toLocaleString("en-US", {
         timeZone: "America/Toronto",
         hour12: true, hour: 'numeric', minute: 'numeric', weekday: 'long'
     });
 
-    // 3. SYSTEM INSTRUCTION (Nạp luật chặn nội dung bẩn ngay tại đây)
+    // 3. SYSTEM INSTRUCTION (Giữ nguyên 100% luật của Sếp)
     const systemInstruction = `
     YOU ARE OPUS VISIONARY AI (CORE ENGINE: GEMINI 3.1).
     ROLE: GLOBAL ELITE PHOTOGRAPHY & TRAVEL MENTOR.
@@ -75,19 +107,19 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Xử lý lỗi từ Google API
+        // Xử lý lỗi từ Google API (Sử dụng Dictionary Đa ngôn ngữ)
         if (data.error) {
             console.error("Gemini Error:", data.error);
-            return res.status(400).json({ reply: "Sếp ơi, bộ não AI đang bận xử lý bối cảnh khác. Sếp thử lại nhé!" });
+            return res.status(400).json({ reply: getErrorReply('busy') });
         }
 
         const aiReply = data.candidates[0].content.parts[0].text;
 
-        // 4. TRẢ KẾT QUẢ NGAY (Bỏ qua lưu trữ Firebase)
+        // 4. TRẢ KẾT QUẢ NGAY
         return res.status(200).json({ reply: aiReply });
 
     } catch (error) {
         console.error("Opus Failure:", error);
-        return res.status(500).json({ reply: "Lỗi kết nối vệ tinh, thưa Sếp. Neural Link đã bị ngắt!" });
+        return res.status(500).json({ reply: getErrorReply('failure') });
     }
 }

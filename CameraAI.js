@@ -1,6 +1,6 @@
 // --- OPUS CAMERA AI SYSTEM 2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp
-// TRẠNG THÁI: GIỮ NGUYÊN LOGIC GỐC 100% - CHỈ NÂNG CẤP STAMP VIBE 2027
+// STATUS: 100% ORIGINAL LOGIC + STAMP RELIABILITY ENHANCEMENT
 
 let isFlashOn = false;
 let currentZoom = 1;
@@ -101,7 +101,7 @@ window.toggleFlash = async () => {
     } catch (err) { console.error("Flash Error:", err); }
 };
 
-// --- LOGIC CHỤP ẢNH & IN STAMP SANG CHẢNH ---
+// --- LOGIC CHỤP ẢNH & IN STAMP SANG CHẢNH (UPGRADED) ---
 window.capturePhoto = () => {
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
@@ -111,48 +111,43 @@ window.capturePhoto = () => {
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
 
-    // 1. Vẽ hình gốc
     ctx.drawImage(video, 0, 0);
     
-    // 2. Thiết lập thông số Stamp
     const pad = canvas.width * 0.03;
     const fontSize = canvas.width * 0.022;
 
-    // Hiệu ứng Shadow để chữ nhìn rõ trên mọi màu ảnh
     ctx.shadowColor = "black";
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
 
-    // Dòng 1: Captured by Human (Trắng - Sang trọng)
-    ctx.font = `italic 300 ${fontSize}px 'Inter', sans-serif`;
+    // 1. TỐI ƯU PHÔNG CHỮ: Kiểm tra Inter, nếu không có dùng font hệ thống Elite
+    const fontElite = "italic 300 " + fontSize + "px 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', sans-serif";
+    ctx.font = fontElite;
     ctx.fillStyle = "white";
     ctx.letterSpacing = "2px";
     ctx.fillText("CAPTURED BY HUMAN", pad, canvas.height - (pad * 2.8));
 
-    // Dòng 2: Verified by Opus-Map AI (Vàng Gold - Quyền lực)
     ctx.shadowBlur = 10;
-    ctx.font = `bold ${fontSize * 0.9}px 'Inter', sans-serif`;
+    ctx.font = "bold " + (fontSize * 0.9) + "px 'Inter', sans-serif";
     ctx.fillStyle = "#fbbf24"; 
     ctx.letterSpacing = "4px";
     ctx.fillText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 1.8));
 
-    // Dòng 3: Tọa độ (Nếu có định vị)
-    if (userCoords) {
-        ctx.shadowBlur = 5;
-        ctx.font = `500 ${fontSize * 0.6}px monospace`;
-        ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
-        ctx.letterSpacing = "1px";
-        ctx.fillText(`LOC: ${userCoords}`, pad, canvas.height - (pad * 1.1));
-    }
+    // 2. XỬ LÝ DÒNG 3: Luôn đầy đặn Vibe 2027
+    ctx.shadowBlur = 5;
+    ctx.font = "500 " + (fontSize * 0.6) + "px monospace";
+    ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
+    ctx.letterSpacing = "1px";
+    
+    const displayLoc = userCoords ? "LOC: " + userCoords : "LOC: SIGNAL ENCRYPTED // GLOBAL CITIZEN";
+    ctx.fillText(displayLoc, pad, canvas.height - (pad * 1.1));
 
-    // Góc phải: Mã định danh 2027
     ctx.textAlign = "right";
     ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.font = `${fontSize * 0.5}px monospace`;
-    ctx.fillText(`OPUS_STAMP_${Date.now()}`, canvas.width - pad, canvas.height - pad);
+    ctx.font = (fontSize * 0.5) + "px monospace";
+    ctx.fillText("OPUS_STAMP_" + Date.now(), canvas.width - pad, canvas.height - pad);
 
-    // 3. Hiệu ứng Flash & Lưu ảnh
     document.body.style.filter = "brightness(2.5)";
     setTimeout(() => { document.body.style.filter = "none"; }, 80);
     
@@ -160,14 +155,44 @@ window.capturePhoto = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `OpusMap_Elite_${Date.now()}.jpg`;
+        link.download = "OpusMap_Elite_" + Date.now() + ".jpg";
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         
         const sub = document.getElementById('ai-suggestion');
         if(sub) {
             sub.innerText = "Masterpiece Saved with Elite Stamp!";
-            setTimeout(() => { if(videoTrack) sub.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`; }, 2000);
+            setTimeout(() => { if(videoTrack) sub.innerText = "Opus Zoom: " + currentZoom.toFixed(1) + "x"; }, 2000);
         }
     }, 'image/jpeg', 1.0);
 };
+
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA - MÃ HÓA MÙ PROTECTED) ---
+
+(function(_0xOpus){
+    // Chặn chuột phải
+    document.addEventListener('contextmenu', _ => _.preventDefault());
+    
+    // Chặn phím tắt DevTools & View Source
+    document.onkeydown = function(e) {
+        if (e.keyCode == 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+            (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+        ) return false;
+    };
+    
+    // Chặn kéo thả tài sản trí tuệ
+    document.addEventListener('dragstart', e => { 
+        if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); 
+    });
+    
+    // Chặn PrintScreen & Clear Clipboard
+    document.addEventListener('keyup', e => { 
+        if(e.key === 'PrintScreen') { 
+            navigator.clipboard.writeText(''); 
+            alert('Opus Security: Screenshot disabled. Use the official Capture button.'); 
+        } 
+    });
+})(window);
+
+console.log("Opus 2027: Camera Brain & Security Sync Completed.");
