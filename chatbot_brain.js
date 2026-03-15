@@ -8,6 +8,7 @@ const chatbotBrain = {
     getDeviceId() {
         let id = localStorage.getItem('opus_navigator_device_id');
         if (!id) {
+            // Định danh Master theo phong cách Opus 2027
             id = 'opus_master_' + Math.random().toString(36).substr(2, 9) + Date.now();
             localStorage.setItem('opus_navigator_device_id', id);
         }
@@ -44,14 +45,14 @@ const chatbotBrain = {
                     userLocation: currentCoords, 
                     attachedImage: window.currentImage || null, 
                     deviceId: this.getDeviceId(),
-                    isLensMode: hasImage, // Đồng bộ hóa việc đang phân tích hình ảnh
+                    isLensMode: hasImage, // Đồng bộ hóa việc đang phân tích hình ảnh qua Lens
                     // Chỉ thị nghiêm ngặt: Urban/Nature Only & Anti-Toxic Content
                     systemMode: "Photography_Assistant_2027_Strict",
                     activeCategory: document.getElementById('header-text')?.innerText || "OPUS GLOBAL"
                 })
             });
 
-            // 3. KIỂM TRA TRẠNG THÁI KẾT NỐI & NỘI DUNG
+            // 3. KIỂM TRA TRẠNG THÁI KẾT NỐI & NỘI DUNG (CONTENT POLICY)
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 

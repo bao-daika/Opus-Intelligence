@@ -227,7 +227,7 @@ window.capturePhoto = async () => {
     showImagePreview(dataUrl);
 };
 
-// 6. SEND MESSAGE
+// 6. SEND MESSAGE (ĐÃ FIX ĐỂ GỌI BRAIN CHUẨN)
 window.sendMessage = async (overrideText = null) => {
     const input = document.getElementById('ai-input');
     const chatMessages = document.getElementById('chat-messages');
@@ -250,17 +250,24 @@ window.sendMessage = async (overrideText = null) => {
     try {
         const currentCoords = (typeof userMarker !== 'undefined') ? userMarker.getLatLng() : null;
         let reply = "Em đang học hỏi sếp ơi, sếp đợi bản Brain 2027 nhé!";
+        
+        // GỌI BRAIN XỬ LÝ
         if (typeof chatbotBrain !== 'undefined') {
             reply = await chatbotBrain.processInput(text, currentCoords, !!tempImg);
         }
+        
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
             loadingElement.classList.remove('animate-pulse', 'italic');
             loadingElement.innerHTML = `<div class="text-[10px] text-yellow-500 font-bold mb-1 uppercase">Mentor</div><div class="text-[11px]">${reply}</div>`; 
         }
     } catch (error) {
+        console.error("Opus UI Error:", error);
         const loadingElement = document.getElementById(loadingId);
-        if (loadingElement) loadingElement.innerText = "Connection lost, Boss!";
+        if (loadingElement) {
+            // Hiển thị lỗi thực tế để sếp biết đường xử lý
+            loadingElement.innerText = "Sếp ơi: " + error.message;
+        }
     }
 };
 
