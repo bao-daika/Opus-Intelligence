@@ -5,8 +5,16 @@ const menuConfig = [
     { id: "vlog", label: "VLOG", icon: "trending-up", dataKey: "Vlog Hotspots" }
 ];
 
-// TRIỆT TIÊU HOÀN TOÀN VOICE TRONG CONFIG ĐỂ NHƯỜNG CHỖ CHO CHATBOT_BRAIN.JS XỊN
+// FIREBASE ELITE KEY 2027
+const opusFirebaseConfig = {
+    apiKey: "AIzaSyAAH3Ue7HciHJAURntnEcN6VTTuwdnwxZI",
+    authDomain: "opus-map-2027.firebaseapp.com",
+    projectId: "opus-map-2027",
+    storageBucket: "opus-map-2027.firebasestorage.app",
+    messagingSenderId: "878459720195",
+    appId: "1:878459720195:web:16161a2ebf4df24283b436"
+};
+
 const chatbotBrainConfig = {
-    // Không còn hàm speak() ở đây nữa thưa sếp!
-    // Mọi logic xử lý đã được dời sang chatbot_brain.js để kết nối Gemini 3.1
+    // Mọi logic đã nằm trong chatbot_brain.js như ý sếp!
 };

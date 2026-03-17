@@ -87,23 +87,22 @@
             100% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
         }
 
-        /* HIỆU ỨNG THỞ DÀNH RIÊNG CHO TITLE */
-.title-breath {
-    animation: title-glow 3s infinite ease-in-out;
-}
+        .title-breath {
+            animation: title-glow 3s infinite ease-in-out;
+        }
 
-@keyframes title-glow {
-    0%, 100% { 
-        box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
-        border-color: rgba(251, 191, 36, 0.3);
-        transform: scale(1);
-    }
-    50% { 
-        box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
-        border-color: rgba(251, 191, 36, 0.8);
-        transform: scale(1.02); /* Nhích nhẹ tạo cảm giác sống động */
-    }
-}
+        @keyframes title-glow {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+                border-color: rgba(251, 191, 36, 0.3);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+                border-color: rgba(251, 191, 36, 0.8);
+                transform: scale(1.02);
+            }
+        }
         #chat-window { display: none; }
     </style>
 </head>
@@ -211,22 +210,59 @@
     <script src="chatbot_ui.js"></script>
 
     <script>
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
-        // 1. Chặn chuột phải
-        document.addEventListener('contextmenu', e => e.preventDefault());
+        // --- FIREBASE 2027 ENGINE (SMART SYNC) ---
+        // Em ưu tiên lấy từ opusFirebaseConfig trong config.js của sếp
+
+        const firebaseConfig = (typeof opusFirebaseConfig !== 'undefined') ? opusFirebaseConfig : {
+            apiKey: "AIzaSyAAH3Ue7HciHJAURntnEcN6VTTuwdnwxZI",
+            authDomain: "opus-map-2027.firebaseapp.com",
+            projectId: "opus-map-2027",
+            storageBucket: "opus-map-2027.firebasestorage.app",
+            messagingSenderId: "878459720195",
+            appId: "1:878459720195:web:16161a2ebf4df24283b436"
+        };
+
+        // Khởi tạo một lần duy nhất
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         
-        // 2. Chặn phím tắt DevTools & Save
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        const authBtn = document.getElementById('auth-btn');
+        const authText = document.getElementById('auth-text');
+        const authStatusIcon = document.getElementById('auth-status-icon');
+
+        authBtn.onclick = () => {
+            if (!auth.currentUser) {
+                auth.signInWithPopup(provider).catch(e => console.error("Elite Login Error:", e));
+            } else {
+                if(confirm("Boss wants to sign out?")) auth.signOut();
+            }
+        };
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                authText.innerText = user.displayName.toUpperCase();
+                authStatusIcon.classList.replace('bg-yellow-500', 'bg-green-500');
+                authStatusIcon.classList.add('shadow-[0_0_10px_#22c55e]'); // Thêm vibe xanh rực rỡ
+            } else {
+                authText.innerText = "Enter Opus";
+                authStatusIcon.classList.replace('bg-green-500', 'bg-yellow-500');
+                authStatusIcon.classList.remove('shadow-[0_0_10px_#22c55e]');
+            }
+        });
+
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM SỬA) ---
+        document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
             if (e.keyCode == 123 || 
                 (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
                 (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
             ) return false;
         };
-        
-        // 3. Chặn kéo thả ảnh & video
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
-        
-        // 4. Phát hiện chụp màn hình & Clear Clipboard
         document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
 
         // --- LOGIC VẬN HÀNH GIỮ NGUYÊN 100% ---
@@ -249,44 +285,40 @@
         const getAllSpots = () => [...(typeof urbanSpots!=='undefined'?urbanSpots:[]), ...(typeof natureSpots!=='undefined'?natureSpots:[]), ...(typeof vlogSpots!=='undefined'?vlogSpots:[])];
 
         function renderMarkers() {
-    markerClusterGroup.clearLayers();
-    const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
-    
-    const newMarkers = filtered.map(spot => {
-        const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
-
-        // --- LOGIC MỚI: CHỈ LẤY HÌNH ĐẦU TIÊN ĐỂ PREVIEW ---
-        // Ưu tiên: 1. Video (nếu có) | 2. Hình đầu tiên trong mảng images | 3. Hình đơn imageUrl cũ
-        let previewImage = "";
-        if (spot.images && spot.images.length > 0) {
-            previewImage = spot.images[0]; // Chỉ lấy tấm đầu tiên thưa Sếp!
-        } else {
-            previewImage = spot.imageUrl;
-        }
-
-        const mediaHtml = spot.videoUrl 
-            ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` 
-            : `<img src="${previewImage}" class="no-select">`;
-        // --------------------------------------------------
-
-        const popupContent = `
-            <div class="text-white">
-                <div class="popup-media-container">${mediaHtml}</div>
-                <div class="p-4">
-                    <p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p>
-                    <h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3>
-                    <button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">
-                        Explore Masterpiece
-                    </button>
-                </div>
-            </div>`;
+            markerClusterGroup.clearLayers();
+            const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
             
-        return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
-    });
-    
-    if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
-    map.invalidateSize();
-}
+            const newMarkers = filtered.map(spot => {
+                const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
+                let previewImage = "";
+                if (spot.images && spot.images.length > 0) {
+                    previewImage = spot.images[0];
+                } else {
+                    previewImage = spot.imageUrl;
+                }
+
+                const mediaHtml = spot.videoUrl 
+                    ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` 
+                    : `<img src="${previewImage}" class="no-select">`;
+
+                const popupContent = `
+                    <div class="text-white">
+                        <div class="popup-media-container">${mediaHtml}</div>
+                        <div class="p-4">
+                            <p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p>
+                            <h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3>
+                            <button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">
+                                Explore Masterpiece
+                            </button>
+                        </div>
+                    </div>`;
+                    
+                return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
+            });
+            
+            if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
+            map.invalidateSize();
+        }
 
         function renderMenu() {
             if (typeof menuConfig === 'undefined') return;

@@ -29,6 +29,7 @@ const urbanSpots = [
         lng: 2.294481,
         images: [
             "Urban/EiffelTower.jpg",
+            
         ],
         audioUrl: "Audio/France.mp3",
         camera: "Fujifilm GFX 100 II | GF 32-64mm f/4",
