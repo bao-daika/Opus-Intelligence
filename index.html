@@ -90,7 +90,18 @@
             0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.3); transform: scale(1); }
             50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.5); border-color: rgba(251, 191, 36, 0.8); transform: scale(1.02); }
         }
-        #chat-window { display: none; }
+
+        /* Chat UI 2027 Fixed */
+        #chat-window { 
+            display: none; 
+            position: absolute; bottom: 110px; right: 20px; 
+            width: calc(100% - 40px); max-width: 350px; 
+            max-height: 500px; z-index: 7000;
+            flex-direction: column; padding: 1.25rem;
+            border-radius: 30px;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body> 
@@ -162,14 +173,37 @@
         </div>
 
         <div id="chat-window" class="glass text-white">
-            <div class="flex justify-between items-center">
-                <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Gallery Curator</span>
-                <button id="close-chat-btn"><i data-lucide="x" class="w-4 h-4"></i></button>
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Gallery Curator</span>
+                    <div id="bot-instruction" class="mt-2 space-y-1.5 border-b border-white/5 pb-3">
+    <div class="flex gap-2">
+        <span class="text-yellow-500 text-[8px]">●</span>
+        <p class="text-[9px] uppercase tracking-tighter leading-tight text-white/60">
+            Capture via <b class="text-white">Lens</b> with coordinates & upload your best shot for me to rate.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <span class="text-yellow-500 text-[8px]">●</span>
+        <p class="text-[9px] uppercase tracking-tighter leading-tight text-white/60">
+            Get <b class="text-yellow-500">9/10 or 10/10</b> to be featured on the global map.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <span class="text-yellow-500 text-[8px]">●</span>
+        <p class="text-[9px] uppercase tracking-tighter leading-tight text-white/60">
+            Ask me about <b class="text-white">Photography & Landscapes</b>. I speak all languages.
+        </p>
+    </div>
+</div>
+                </div>
+                <button id="close-chat-btn" class="mt-1"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div id="chat-messages" class="scrollbar-hide flex-1"></div>
+            <div id="chat-messages" class="scrollbar-hide flex-1 overflow-y-auto space-y-4"></div>
+            
             <div class="flex gap-2 items-end mt-4 pt-4 border-t border-white/5">
-                <textarea id="ai-input" placeholder="Message..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none resize-none" rows="1"></textarea>
-                <div class="flex gap-2">
+                <textarea id="ai-input" placeholder="Message..." class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-xs outline-none resize-none" rows="1"></textarea>
+                <div class="flex gap-2 shrink-0">
                     <button id="send-btn" class="px-4 h-10 bg-yellow-500 text-black rounded-xl font-black text-[10px] uppercase">Send</button>
                     <button id="lens-btn" class="px-4 h-10 glass text-yellow-500 rounded-xl font-black text-[10px] uppercase border border-yellow-500/20">Lens</button>
                 </div>
@@ -239,7 +273,7 @@
             console.log("Opus System: Global masterpiece list updated.");
         });
 
-        // --- SECURITY (CẤM SỬA) ---
+        // --- SECURITY (CẤM SỬA - HỆ THỐNG PHÒNG THỦ 2027) ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
@@ -270,17 +304,13 @@
             
             const newMarkers = filtered.map(spot => {
                 let iconHtml = `<div class="marker-glow"></div>`;
-                
-                // Logic vẽ đốm nhỏ cho User (Tím cho Urban, Blue cho Nature)
                 if (spot.verified === "USER") {
                     if (spot.category === "Urban") iconHtml = `<div class="marker-user-purple"></div>`;
                     else if (spot.category === "Nature") iconHtml = `<div class="marker-user-blue"></div>`;
                 }
-
                 const icon = L.divIcon({className:"custom-marker", html: iconHtml, iconSize:[12,12]});
                 let previewImage = (spot.images && spot.images.length > 0) ? spot.images[0] : spot.imageUrl;
                 const mediaHtml = spot.videoUrl ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` : `<img src="${previewImage}" class="no-select">`;
-
                 const popupContent = `
                     <div class="text-white">
                         <div class="popup-media-container">${mediaHtml}</div>
@@ -292,10 +322,8 @@
                             </button>
                         </div>
                     </div>`;
-                    
                 return L.marker([spot.lat, spot.lng], {icon}).bindPopup(popupContent, {offset:[0, -10], closeButton: false});
             });
-            
             if (newMarkers.length > 0) markerClusterGroup.addLayers(newMarkers);
             map.invalidateSize();
         }

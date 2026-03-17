@@ -95,43 +95,28 @@
         let currentSlide = 0;
         const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
-        // --- 3. GLOBAL AI VIBE GUARD 2027 (ADVANCED MULTILINGUAL FILTER) ---
         const cleanVibeFilter = (text) => {
-            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-            const wordCount = words.length;
-            const lowerText = text.toLowerCase();
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+    const wordCount = words.length;
+    const lowerText = text.toLowerCase();
 
-            // A. Pattern Detection: Chặn cấu trúc chửi thề đa ngôn ngữ (Regex Intelligence)
-            // Vi, En, Cn, Fr...
-            const globalToxicPattern = /([cćç][uūû]t|[đd]m|vcl|l[oô]n|b[uū]oi|f[uū]ck|sh[iî]t|b[iî]tch|p[uū]ssy|d[iî]ck|p[oô]rn|c[oô]nnard|m[eé]rde|putain|shabi|caonima|n[iî]gga|s[l]ut|baise|salope|肏|操你妈|傻逼|贱人)/i;
+    // 1. Chỉ chặn Toxic thật sự (bỏ bớt các pattern quá nhạy cảm gây nhầm lẫn)
+    const globalToxicPattern = /([đd]m|vcl|l[oô]n|b[uū]oi|f[uū]ck|sh[iî]t|b[iî]tch|p[uū]ssy|d[iî]ck|p[oô]rn|n[iî]gga|s[l]ut)/i;
+    if (globalToxicPattern.test(lowerText)) {
+        return { valid: false, reason: "Content violates Opus Global Vibe standards." };
+    }
 
-            // B. Chinese Radical Block (Chặn các bộ thủ nhạy cảm trong tiếng Trung)
-            const chineseToxic = /[\u808b\u6操\u5妈\u5逼\u5贱\u6滚]/;
+    // 2. Nới lỏng Anti-spam ký tự (Chỉ chặn khi lặp lại quá 10 lần thay vì 5)
+    if (/(.)\1{10,}/.test(text.replace(/\s/g, ''))) {
+        return { valid: false, reason: "Repetitive patterns are restricted." };
+    }
 
-            // 1. Kiểm tra toxic
-            if (globalToxicPattern.test(lowerText) || chineseToxic.test(text)) {
-                return { valid: false, reason: "Content violates Opus Global Vibe standards." };
-            }
-
-            // 2. Chặn Spam ký tự (Ví dụ: aaaaaa, fffffff)
-            if (/(.)\1{5,}/.test(text.replace(/\s/g, ''))) {
-                return { valid: false, reason: "Repetitive patterns are restricted." };
-            }
-
-            // 3. Anti-spam Link Filter
-            const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(.\w{2,4}\/)/gi;
-            if (urlRegex.test(text)) return { valid: false, reason: "External links are not allowed." };
-
-            // 4. 50 Words Limit (Elite Rule)
-            if (wordCount > 50) 
-                return { valid: false, reason: `Insight exceeds 50 words (${wordCount}/50). Be concise.` };
-            
-            // 5. Short Insight Block (Cấm comment hời hợt)
-            if (wordCount < 3 && text.length > 0)
-                return { valid: false, reason: "Insight is too brief. Art requires deeper reflection." };
-            
-            return { valid: true };
-        };
+    // 3. Giữ nguyên giới hạn 50 từ và 3 từ tối thiểu
+    if (wordCount > 50) return { valid: false, reason: "Be concise (under 50 words)." };
+    if (wordCount > 0 && wordCount < 3) return { valid: false, reason: "Insight is too brief." };
+    
+    return { valid: true };
+};
 
         // --- 4. COMMENT & APPRECIATE LOGIC ---
         const listenToComments = (spotId) => {

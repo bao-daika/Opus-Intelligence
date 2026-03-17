@@ -75,7 +75,8 @@ const chatbotBrain = {
                     const memory = JSON.parse(cachedResult);
                     console.log("Opus Brain: Memory Match. Consistent score retrieved.");
                     if (memory.score >= 9 && window.injectUploadAction) {
-                        window.injectUploadAction(activeImage);
+                        // Sếp lưu ý: Truyền thêm category từ memory
+                        window.injectUploadAction(activeImage, memory.category || "Urban");
                     }
                     return memory.reply;
                 }
@@ -111,6 +112,10 @@ const chatbotBrain = {
             const data = await response.json();
             const aiReply = data.reply || "I am processing your vision, Boss.";
 
+            // LOGIC THẨM ĐỊNH CATEGORY: Urban hay Nature
+            const isNature = aiReply.toUpperCase().includes("NATURE") || aiReply.toLowerCase().includes("thiên nhiên");
+            const detectedCategory = isNature ? "Nature" : "Urban";
+
             const scoreMatch = aiReply.match(/(\d+(\.\d+)?)\/10/);
             const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
 
@@ -118,17 +123,13 @@ const chatbotBrain = {
                 localStorage.setItem(`opus_vision_${imageHash}`, JSON.stringify({
                     reply: aiReply,
                     score: score,
+                    category: detectedCategory,
                     timestamp: Date.now()
                 }));
             }
 
             if ((score >= 9 || aiReply.toUpperCase().includes("MASTERPIECE")) && window.injectUploadAction && activeImage) {
-                window.injectUploadAction(activeImage);
-            }
-
-            const triggers = ["góc", "đẹp", "chụp", "bố cục", "ánh sáng", "view", "angle", "lighting", "composition"];
-            if (triggers.some(t => input.toLowerCase().includes(t)) && !hasImage) {
-                console.log("Opus AI Suggestion: Boss, activate Lens Mode for a better perspective.");
+                window.injectUploadAction(activeImage, detectedCategory);
             }
 
             return aiReply;
@@ -163,29 +164,29 @@ const chatbotBrain = {
             const imageHash = await this.getImageHash(imageData);
             const cachedData = JSON.parse(localStorage.getItem(`opus_vision_${imageHash}`));
             const aiScore = cachedData ? cachedData.score : 0;
+            
+            // Logic quan trọng: Lấy category do AI quyết định thay vì lấy header-text của user
+            const finalCategory = (cachedData && cachedData.category) ? cachedData.category : "Urban";
 
-            // Cấu trúc Data chuẩn để index.html vẽ (giống Urban.js)
             const newPin = {
                 name: metadata.title,
                 camera: metadata.hardware,
                 Description: metadata.desc, 
                 lat: (typeof userMarker !== 'undefined' && userMarker) ? userMarker.getLatLng().lat : 0,
                 lng: (typeof userMarker !== 'undefined' && userMarker) ? userMarker.getLatLng().lng : 0,
-                images: [imageData], // Nhét Base64 thẳng vào mảng images
+                images: [imageData], 
                 timestamp: new Date().toISOString(),
-                verified: "USER", // Để vẽ chấm Tím/Blue nhỏ
-                category: document.getElementById('header-text')?.innerText || "Urban",
+                verified: "USER", 
+                category: finalCategory, // AI ĐÃ QUYẾT ĐỊNH
                 score: aiScore,
                 id: 'opus_' + Date.now()
             };
 
-            // BRODCAST THẲNG LÊN FIRESTORE (Lách lỗi Storage Toronto)
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 await firebase.firestore().collection("global_masterpieces").add(newPin);
-                console.log("Opus 2027: Masterpiece injected into Firestore successfully.");
+                console.log(`Opus 2027: Masterpiece injected into ${finalCategory} collection.`);
             }
 
-            // Cập nhật Quota Local
             const quotaKey = `opus_quota_${this.getDeviceId()}`;
             let qData = JSON.parse(localStorage.getItem(quotaKey));
             qData.count += 1;
