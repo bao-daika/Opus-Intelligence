@@ -14,9 +14,10 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
     <style>
-        :root { --gold: #fbbf24; --bg: #020617; --cyan: #06b6d4; }
+        :root { --gold: #fbbf24; --bg: #020617; --cyan: #06b6d4; --purple-user: #a855f7; --blue-user: #3b82f6; }
         body, html { 
             height: 100%; margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
             overflow: hidden; position: fixed; width: 100%; 
@@ -72,14 +73,11 @@
         .lens-inner { width: 45px; height: 45px; border-radius: 50%; background: radial-gradient(circle, #222 0%, #000 80%); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; animation: lensZoom 3s infinite ease-in-out; }
         .lens-glass-reflection { position: absolute; top: 20%; left: 20%; width: 15px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 50%; transform: rotate(-45deg); }
         @keyframes lensZoom { 0%, 100% { transform: scale(1); box-shadow: inset 0 0 5px var(--gold); } 50% { transform: scale(1.15); box-shadow: inset 0 0 20px var(--gold); } }
-        .marker-glow { 
-            width: 12px; 
-            height: 12px; 
-            background: var(--gold); 
-            border-radius: 50%; 
-            box-shadow: 0 0 15px var(--gold);
-            animation: opus-pulse 2s infinite ease-in-out;
-        }
+        
+        /* Markers Logic */
+        .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); animation: opus-pulse 2s infinite ease-in-out; }
+        .marker-user-purple { width: 8px; height: 8px; background: var(--purple-user); border-radius: 50%; box-shadow: 0 0 10px var(--purple-user); }
+        .marker-user-blue { width: 8px; height: 8px; background: var(--blue-user); border-radius: 50%; box-shadow: 0 0 10px var(--blue-user); }
 
         @keyframes opus-pulse {
             0% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
@@ -87,21 +85,10 @@
             100% { transform: scale(1); opacity: 1; box-shadow: 0 0 5px var(--gold); }
         }
 
-        .title-breath {
-            animation: title-glow 3s infinite ease-in-out;
-        }
-
+        .title-breath { animation: title-glow 3s infinite ease-in-out; }
         @keyframes title-glow {
-            0%, 100% { 
-                box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
-                border-color: rgba(251, 191, 36, 0.3);
-                transform: scale(1);
-            }
-            50% { 
-                box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
-                border-color: rgba(251, 191, 36, 0.8);
-                transform: scale(1.02);
-            }
+            0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.3); transform: scale(1); }
+            50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.5); border-color: rgba(251, 191, 36, 0.8); transform: scale(1.02); }
         }
         #chat-window { display: none; }
     </style>
@@ -113,18 +100,15 @@
         <div class="lens-overlay">
             <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
             <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
-            
             <div class="absolute top-10 left-0 right-0 text-center">
                 <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">Opus Elite Lens</p>
                 <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">System Ready</p>
             </div>
-
             <div class="zoom-selector-container">
                 <button onclick="window.changeZoom(1, this)" class="btn-zoom active">1X</button>
                 <button onclick="window.changeZoom(2, this)" class="btn-zoom">2X</button>
                 <button onclick="window.changeZoom(5, this)" class="btn-zoom">5X</button>
             </div>
-
             <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-6 pointer-events-auto">
                 <button id="close-lens-btn" onclick="window.stopAILens()" class="p-4 glass rounded-full text-white active:scale-90 transition">
                     <i data-lucide="x"></i>
@@ -169,7 +153,7 @@
                 <button id="auth-btn" class="w-full flex items-center justify-between p-4 bg-white/5 rounded-xl active:scale-[0.98] transition">
                     <div class="flex items-center gap-3">
                         <div id="auth-status-icon" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                        <span id="auth-text" class="text-[10px] font-black uppercase tracking-widest text-white">Join Elite</span>
+                        <span id="auth-text" class="text-[10px] font-black uppercase tracking-widest text-white">Enter Opus</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-yellow-500"></i>
                 </button>
@@ -210,9 +194,7 @@
     <script src="chatbot_ui.js"></script>
 
     <script>
-        // --- FIREBASE 2027 ENGINE (SMART SYNC) ---
-        // Em ưu tiên lấy từ opusFirebaseConfig trong config.js của sếp
-
+        // --- FIREBASE ENGINE ---
         const firebaseConfig = (typeof opusFirebaseConfig !== 'undefined') ? opusFirebaseConfig : {
             apiKey: "AIzaSyAAH3Ue7HciHJAURntnEcN6VTTuwdnwxZI",
             authDomain: "opus-map-2027.firebaseapp.com",
@@ -222,12 +204,9 @@
             appId: "1:878459720195:web:16161a2ebf4df24283b436"
         };
 
-        // Khởi tạo một lần duy nhất
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const db = firebase.firestore();
         const provider = new firebase.auth.GoogleAuthProvider();
 
         const authBtn = document.getElementById('auth-btn');
@@ -235,18 +214,15 @@
         const authStatusIcon = document.getElementById('auth-status-icon');
 
         authBtn.onclick = () => {
-            if (!auth.currentUser) {
-                auth.signInWithPopup(provider).catch(e => console.error("Elite Login Error:", e));
-            } else {
-                if(confirm("Boss wants to sign out?")) auth.signOut();
-            }
+            if (!auth.currentUser) auth.signInWithPopup(provider).catch(e => console.error("Elite Login Error:", e));
+            else if(confirm("Boss wants to sign out?")) auth.signOut();
         };
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 authText.innerText = user.displayName.toUpperCase();
                 authStatusIcon.classList.replace('bg-yellow-500', 'bg-green-500');
-                authStatusIcon.classList.add('shadow-[0_0_10px_#22c55e]'); // Thêm vibe xanh rực rỡ
+                authStatusIcon.classList.add('shadow-[0_0_10px_#22c55e]');
             } else {
                 authText.innerText = "Enter Opus";
                 authStatusIcon.classList.replace('bg-green-500', 'bg-yellow-500');
@@ -254,58 +230,62 @@
             }
         });
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM SỬA) ---
+        // --- GLOBAL USER DATA SYNC ---
+        let globalUserSpots = [];
+        db.collection("global_masterpieces").onSnapshot((snapshot) => {
+            globalUserSpots = [];
+            snapshot.forEach(doc => globalUserSpots.push({ id: doc.id, ...doc.data() }));
+            renderMarkers();
+            console.log("Opus System: Global masterpiece list updated.");
+        });
+
+        // --- SECURITY (CẤM SỬA) ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => {
-            if (e.keyCode == 123 || 
-                (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
-                (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
-            ) return false;
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
         };
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
         document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
 
-        // --- LOGIC VẬN HÀNH GIỮ NGUYÊN 100% ---
-        document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) e.preventDefault();
-            lastTouchEnd = now;
-        }, false);
-
+        // --- MAP LOGIC ---
         let activeCategoryObject = (typeof menuConfig !== 'undefined') ? menuConfig[0] : { id: 'urban', dataKey: 'Urban', label: 'Urban' };
         const map = L.map('map', { zoomControl: false, attributionControl: false, minZoom: 3, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0 }).setView([25, 10], 3);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true }).addTo(map);
+        
         let markerClusterGroup = L.markerClusterGroup({ 
             showCoverageOnHover: false, maxClusterRadius: 40,
             iconCreateFunction: (c) => L.divIcon({html:`<div class="glass flex items-center justify-center rounded-full w-10 h-10 border border-yellow-500 text-yellow-500 font-black text-[10px]">${c.getChildCount()}</div>`, className:'custom-cluster', iconSize:[40,40]})
         }).addTo(map);
 
-        const getAllSpots = () => [...(typeof urbanSpots!=='undefined'?urbanSpots:[]), ...(typeof natureSpots!=='undefined'?natureSpots:[]), ...(typeof vlogSpots!=='undefined'?vlogSpots:[])];
+        const getAllSpots = () => [
+            ...(typeof urbanSpots!=='undefined'?urbanSpots:[]), 
+            ...(typeof natureSpots!=='undefined'?natureSpots:[]), 
+            ...(typeof vlogSpots!=='undefined'?vlogSpots:[]),
+            ...globalUserSpots
+        ];
 
         function renderMarkers() {
             markerClusterGroup.clearLayers();
             const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
             
             const newMarkers = filtered.map(spot => {
-                const icon = L.divIcon({className:"custom-marker", html:`<div class="marker-glow"></div>`, iconSize:[12,12]});
-                let previewImage = "";
-                if (spot.images && spot.images.length > 0) {
-                    previewImage = spot.images[0];
-                } else {
-                    previewImage = spot.imageUrl;
+                let iconHtml = `<div class="marker-glow"></div>`;
+                
+                // Logic vẽ đốm nhỏ cho User (Tím cho Urban, Blue cho Nature)
+                if (spot.verified === "USER") {
+                    if (spot.category === "Urban") iconHtml = `<div class="marker-user-purple"></div>`;
+                    else if (spot.category === "Nature") iconHtml = `<div class="marker-user-blue"></div>`;
                 }
 
-                const mediaHtml = spot.videoUrl 
-                    ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` 
-                    : `<img src="${previewImage}" class="no-select">`;
+                const icon = L.divIcon({className:"custom-marker", html: iconHtml, iconSize:[12,12]});
+                let previewImage = (spot.images && spot.images.length > 0) ? spot.images[0] : spot.imageUrl;
+                const mediaHtml = spot.videoUrl ? `<video src="${spot.videoUrl}" autoplay loop muted playsinline></video>` : `<img src="${previewImage}" class="no-select">`;
 
                 const popupContent = `
                     <div class="text-white">
                         <div class="popup-media-container">${mediaHtml}</div>
                         <div class="p-4">
-                            <p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category}</p>
+                            <p class="text-[7px] text-yellow-500 font-black uppercase mb-1">${spot.category} ${spot.verified === "USER" ? "• Global Elite" : ""}</p>
                             <h3 class="font-light text-xs mb-3 truncate">${spot.name}</h3>
                             <button onclick="goToDetail('${spot.id}')" class="w-full py-2 bg-white/5 border border-white/20 rounded-lg text-[8px] font-bold uppercase hover:bg-yellow-500 transition">
                                 Explore Masterpiece
@@ -337,7 +317,10 @@
         }
 
         window.toggleMenu = () => document.getElementById('sidebar').classList.toggle('hidden');
-        window.goToDetail = (id) => { const s = getAllSpots().find(x=>x.id===id); if(s){localStorage.setItem("selectedSpot", JSON.stringify(s)); window.location.href="detail.html";} };
+        window.goToDetail = (id) => { 
+            const s = getAllSpots().find(x=>x.id===id || x.id.toString() === id.toString()); 
+            if(s){localStorage.setItem("selectedSpot", JSON.stringify(s)); window.location.href="detail.html";} 
+        };
 
         window.addEventListener('load', () => { 
             document.getElementById('header-text').innerText = activeCategoryObject.label;

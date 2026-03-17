@@ -1,4 +1,4 @@
-// --- OPUS AI UI: CENTRAL COMMAND (SILENT & TEXT-ONLY 2027) ---
+// --- OPUS AI UI: CENTRAL COMMAND (SECURE & ELITE 2027) ---
 
 (function injectGeminiStyles() {
     const style = document.createElement('style');
@@ -58,6 +58,24 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         #chat-messages::-webkit-scrollbar { width: 3px; }
         #chat-messages::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.3); border-radius: 10px; }
+        .locked-btn { opacity: 0.4; filter: grayscale(1); }
+
+        /* OPUS FORM STYLE 2027 */
+        .opus-form-input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px;
+            color: white;
+            font-size: 10px;
+            width: 100%;
+            margin-bottom: 8px;
+            outline: none;
+        }
+        .opus-form-input:focus { border-color: #fbbf24; }
+
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     `;
     document.head.appendChild(style);
 })();
@@ -85,15 +103,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputWrapper && !document.getElementById('chat-upload-btn')) {
         const uploadTrigger = document.createElement('button');
         uploadTrigger.id = "chat-upload-btn";
-        uploadTrigger.className = "p-2 text-white/50 hover:text-yellow-500 transition-colors flex-shrink-0";
+        uploadTrigger.className = "p-2 text-white/50 hover:text-yellow-500 transition-all flex-shrink-0";
         uploadTrigger.innerHTML = `<i data-lucide="image-plus" class="w-5 h-5"></i>`;
         inputWrapper.insertBefore(uploadTrigger, input);
         
         const fileInput = document.createElement('input');
+        fileInput.id = "hidden-file-input";
         fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
         document.body.appendChild(fileInput);
 
-        uploadTrigger.onclick = () => fileInput.click();
+        uploadTrigger.onclick = () => {
+            if (firebase.auth().currentUser) {
+                fileInput.click();
+            } else {
+                addChatMessageUI("Enter Opus to upload your images", false);
+                if(typeof toggleMenu === 'function') setTimeout(toggleMenu, 1200);
+            }
+        };
+
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -134,6 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 });
 
+window.updateUploadButtonVisibility = () => {
+    const btn = document.getElementById('chat-upload-btn');
+    if (!btn) return;
+    if (firebase.auth().currentUser) {
+        btn.classList.remove('locked-btn');
+    } else {
+        btn.classList.add('locked-btn');
+    }
+};
+
 function showImagePreview(src) {
     let previewBox = document.getElementById('image-preview-container');
     const inputArea = document.querySelector('#chat-window > div:last-child');
@@ -156,6 +193,8 @@ window.clearPreview = () => {
     window.currentImage = null;
     const previewBox = document.getElementById('image-preview-container');
     if (previewBox) previewBox.remove();
+    const fInput = document.getElementById('hidden-file-input');
+    if (fInput) fInput.value = "";
 };
 
 window.toggleChat = () => {
@@ -171,40 +210,31 @@ window.sendMessage = async (overrideText = null) => {
     if (!input || !chatMessages) return;
 
     const text = overrideText || input.value.trim();
-    // 1. Giữ bản sao dữ liệu ảnh để gửi đi, tránh bị xóa mất
     const tempImgData = window.currentImage; 
     
     if (!text && !tempImgData) return;
 
-    // 2. Hiển thị UI ngay lập tức cho sếp
     addChatMessageUI(text, true, null, tempImgData);
     
-    // Reset ô nhập liệu
     if (!overrideText) { input.value = ""; input.style.height = '40px'; }
 
     const loadingId = "loading-" + Date.now();
-    addChatMessageUI("Gallery Curator is thinking...", false, loadingId);
+    addChatMessageUI("Gallery Curator is evaluating your work...", false, loadingId);
 
     try {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
-        let reply = "I'm analyzing, Boss...";
         
         if (typeof chatbotBrain !== 'undefined') {
             const hasImage = tempImgData !== null;
+            const reply = await chatbotBrain.processInput(text, currentCoords, hasImage, tempImgData);
             
-            // 3. Truyền dữ liệu đi (Đảm bảo tempImgData vẫn tồn tại ở đây)
-            reply = await chatbotBrain.processInput(text, currentCoords, hasImage);
+            const loadingElement = document.getElementById(loadingId);
+            if (loadingElement) {
+                loadingElement.classList.remove('animate-pulse', 'italic');
+                loadingElement.querySelector('.msg-text').innerText = reply;
+            }
         }
-        
-        const loadingElement = document.getElementById(loadingId);
-        if (loadingElement) {
-            loadingElement.classList.remove('animate-pulse', 'italic');
-            loadingElement.querySelector('.msg-text').innerText = reply;
-        }
-
-        // 4. CHỈ XÓA PREVIEW KHI ĐÃ GỬI XONG THÀNH CÔNG
         window.clearPreview();
-
     } catch (error) {
         const el = document.getElementById(loadingId);
         if (el) el.querySelector('.msg-text').innerText = "Connection lost, Boss.";
@@ -228,3 +258,65 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     msgBox.appendChild(wrapper);
     msgBox.scrollTop = msgBox.scrollHeight;
 }
+
+// --- MASTERPIECE FORM: UPLOAD TO OPUS MAP ---
+window.injectUploadAction = (tempImgData) => {
+    addChatMessageUI("MASTERPIECE DETECTED! Upload your masterpiece to Opus Map?", false);
+    
+    const chatMessages = document.getElementById('chat-messages');
+    const formWrapper = document.createElement('div');
+    formWrapper.id = "masterpiece-form-container";
+    formWrapper.className = "flex flex-col gap-2 p-4 glass border border-yellow-500/30 rounded-2xl mt-2 w-[90%] self-start animate-fade-in";
+    
+    formWrapper.innerHTML = `
+        <input type="text" id="final-title" class="opus-form-input" placeholder="Title (e.g. Midnight Pulse)">
+        <input type="text" id="final-hardware" class="opus-form-input" placeholder="Hardware (e.g. Sony A7R V)">
+        <textarea id="final-desc" class="opus-form-input" placeholder="Description..." rows="2"></textarea>
+        <div class="flex gap-2">
+            <button id="final-upload-btn" class="flex-1 py-2 bg-yellow-500 text-black rounded-full font-black text-[10px] uppercase hover:scale-105 transition-all">
+                Send
+            </button>
+            <button id="final-close-btn" class="flex-1 py-2 bg-white/10 text-white rounded-full font-black text-[10px] uppercase hover:bg-white/20 transition-all">
+                Close
+            </button>
+        </div>
+    `;
+    
+    chatMessages.appendChild(formWrapper);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Nút CLOSE
+    document.getElementById('final-close-btn').onclick = () => {
+        formWrapper.remove();
+        addChatMessageUI("Upload cancelled by Boss.", false);
+    };
+
+    // Nút SEND
+    document.getElementById('final-upload-btn').onclick = async () => {
+        const metadata = {
+            title: document.getElementById('final-title').value.trim(),
+            hardware: document.getElementById('final-hardware').value.trim(),
+            desc: document.getElementById('final-desc').value.trim()
+        };
+
+        if (!metadata.title || !metadata.hardware) {
+            alert("Opus Security: Title and Hardware are required, Boss.");
+            return;
+        }
+
+        const btn = document.getElementById('final-upload-btn');
+        btn.disabled = true;
+        btn.innerText = "Verifying...";
+
+        const success = await chatbotBrain.secureUpload(tempImgData, metadata);
+        
+        if (success) {
+            formWrapper.innerHTML = "<p class='text-yellow-500 text-[10px] font-bold italic animate-pulse text-center'>Neural Link Complete. Pin added to Opus Map!</p>";
+            setTimeout(() => formWrapper.remove(), 3000);
+        } else {
+            btn.disabled = false;
+            btn.innerText = "Send";
+            alert("Opus Error: Secure Upload Failed.");
+        }
+    };
+};
