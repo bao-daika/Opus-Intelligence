@@ -11,7 +11,6 @@ const urbanSpots = [
         lng: -79.387054,
         images: [
             "Urban/CN_Tower1.jpg",
-            "Urban/CN_Tower_Night.jpg"
         ],
         audioUrl: "Audio/Toronto.mp3",
         camera: "Sony A7R V | FE 16-35mm f/2.8 GM II",
@@ -27,7 +26,6 @@ const urbanSpots = [
         lng: 2.294481,
         images: [
             "Urban/EiffelTower.jpg",
-            "Urban/Eiffel_Sunset.jpg"
         ],
         audioUrl: "Audio/France.mp3",
         camera: "Fujifilm GFX 100 II | GF 32-64mm f/4",
