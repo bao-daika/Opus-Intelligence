@@ -93,7 +93,7 @@
 
         const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
         let currentSlide = 0;
-        const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+        const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
 
         let lastVisibleComment = null;
         let commentsPerPage = 5;
@@ -111,8 +111,12 @@
             return { valid: true };
         };
 
-        // --- 4. DATA LISTENERS ---
+        // --- 4. DATA LISTENERS (FIXED) ---
         const listenToComments = (spotId, isLoadMore = false) => {
+            const commentList = document.getElementById('comment-list');
+            const loadMoreBtn = document.getElementById('load-more-comments');
+            if (!commentList) return;
+
             let query = db.collection("comments")
                 .where("spotId", "==", spotId)
                 .orderBy("timestamp", "desc")
@@ -120,50 +124,48 @@
 
             if (isLoadMore && lastVisibleComment) {
                 query = query.startAfter(lastVisibleComment);
-            } else {
-                const list = document.getElementById('comment-list');
-                if(list && !isLoadMore) list.innerHTML = '';
+            } else if (!isLoadMore) {
+                commentList.innerHTML = ''; 
+                lastVisibleComment = null;
             }
 
             query.get().then((snapshot) => {
-                const commentList = document.getElementById('comment-list');
-                const loadMoreBtn = document.getElementById('load-more-comments');
-                if (!commentList) return;
-
                 if (snapshot.empty && !isLoadMore) {
                     commentList.innerHTML = `<p class="text-[10px] text-white/20 uppercase tracking-widest italic">No insights yet...</p>`;
                     if(loadMoreBtn) loadMoreBtn.style.display = 'none';
                     return;
                 }
 
-                lastVisibleComment = snapshot.docs[snapshot.docs.length - 1];
-                const currentUser = auth.currentUser;
+                if (!snapshot.empty) {
+                    lastVisibleComment = snapshot.docs[snapshot.docs.length - 1];
+                    const currentUser = auth.currentUser;
 
-                const html = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    const initial = data.userName ? data.userName.charAt(0).toUpperCase() : 'E';
-                    const isOwner = currentUser && currentUser.uid === data.userId;
-                    return `
-                        <div class="comment-node group animate-in fade-in duration-700">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">${initial}</div>
-                                    <span class="text-[9px] text-white/50 uppercase tracking-tighter">${data.userName || 'Anonymous'}</span>
+                    const html = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        const initial = data.userName ? data.userName.charAt(0).toUpperCase() : 'E';
+                        const isOwner = currentUser && currentUser.uid === data.userId;
+                        return `
+                            <div class="comment-node group animate-in fade-in duration-700">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">${initial}</div>
+                                        <span class="text-[9px] text-white/50 uppercase tracking-tighter">${data.userName || 'Anonymous'}</span>
+                                    </div>
+                                    ${isOwner ? `<button onclick="deleteComment('${doc.id}')" class="opacity-0 group-hover:opacity-100 text-[8px] text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-all">Delete</button>` : ''}
                                 </div>
-                                ${isOwner ? `<button onclick="deleteComment('${doc.id}')" class="opacity-0 group-hover:opacity-100 text-[8px] text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-all">Delete</button>` : ''}
-                            </div>
-                            <p class="text-sm text-white/70 font-light ml-9">${data.text}</p>
-                        </div>`;
-                }).join('');
+                                <p class="text-sm text-white/70 font-light ml-9">${data.text}</p>
+                            </div>`;
+                    }).join('');
 
-                commentList.insertAdjacentHTML('beforeend', html);
+                    commentList.insertAdjacentHTML('beforeend', html);
+                }
 
                 if (snapshot.docs.length < commentsPerPage) {
                     if(loadMoreBtn) loadMoreBtn.style.display = 'none';
                 } else if(loadMoreBtn) {
                     loadMoreBtn.style.display = 'block';
                 }
-            });
+            }).catch(err => console.error("Opus Comment Error:", err));
         };
 
         const listenToAppreciates = (spotId) => {
@@ -205,7 +207,7 @@
         window.deleteComment = async (id) => {
             if(confirm("Are you sure you want to remove this insight?")) {
                 await db.collection("comments").doc(id).delete();
-                renderPage();
+                listenToComments(spot.id || spot.name);
             }
         };
 
@@ -238,7 +240,6 @@
                 });
                 localStorage.setItem(`opus_cooldown_${user.uid}`, Date.now());
                 input.value = "";
-                lastVisibleComment = null;
                 listenToComments(spot.id || spot.name); 
             } catch (error) { console.error(error); }
         };
@@ -328,7 +329,7 @@
                                     <div class="flex-1 h-[1px] bg-white/5"></div>
                                 </div>
                                 <div id="comment-list" class="space-y-10"></div>
-                                <button id="load-more-comments" onclick="listenToComments(spot.id || spot.name, true)" class="mx-auto mt-8 hidden text-[8px] text-yellow-500/50 hover:text-yellow-500 uppercase tracking-[0.3em] transition-all">Load More Insights +</button>
+                                <button id="load-more-comments" onclick="listenToComments('${spot.id || spot.name}', true)" class="mx-auto mt-8 hidden text-[8px] text-yellow-500/50 hover:text-yellow-500 uppercase tracking-[0.3em] transition-all">Load More Insights +</button>
 
                                 <div class="mt-16 p-6 md:p-10 glass rounded-[30px] border border-white/5 group focus-within:border-yellow-500/40 transition-all">
                                     <textarea id="user-comment" placeholder="${user ? 'Leave an elite insight...' : 'Sign in to join the discussion...'}" class="w-full bg-transparent border-none text-sm font-light text-white outline-none resize-none h-20 placeholder:text-white/10" ${!user ? 'disabled' : ''}></textarea>
