@@ -12,8 +12,6 @@ const urbanSpots = [
         // CHUYỂN THÀNH MẢNG: Sếp có thể thêm không giới hạn ảnh vào đây
         images: [
             "Urban/CN_Tower1.jpg",
-            "Urban/CN_Tower2.jpg",
-            "Urban/CN_Tower3.jpg",
         ],
         audioUrl: "Audio/Toronto.mp3",
         camera: "Sony A7R V | FE 16-35mm f/2.8 GM II",
