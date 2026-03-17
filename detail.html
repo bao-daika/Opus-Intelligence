@@ -93,62 +93,81 @@
 
         const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
         let currentSlide = 0;
-        const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+        const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
+
+        // Pagination State
+        let lastVisibleComment = null;
+        let commentsPerPage = 5;
+        let unsubscribeComments = null;
 
         const cleanVibeFilter = (text) => {
-    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-    const wordCount = words.length;
-    const lowerText = text.toLowerCase();
-
-    // 1. Chỉ chặn Toxic thật sự (bỏ bớt các pattern quá nhạy cảm gây nhầm lẫn)
-    const globalToxicPattern = /([đd]m|vcl|l[oô]n|b[uū]oi|f[uū]ck|sh[iî]t|b[iî]tch|p[uū]ssy|d[iî]ck|p[oô]rn|n[iî]gga|s[l]ut)/i;
-    if (globalToxicPattern.test(lowerText)) {
-        return { valid: false, reason: "Content violates Opus Global Vibe standards." };
-    }
-
-    // 2. Nới lỏng Anti-spam ký tự (Chỉ chặn khi lặp lại quá 10 lần thay vì 5)
-    if (/(.)\1{10,}/.test(text.replace(/\s/g, ''))) {
-        return { valid: false, reason: "Repetitive patterns are restricted." };
-    }
-
-    // 3. Giữ nguyên giới hạn 50 từ và 3 từ tối thiểu
-    if (wordCount > 50) return { valid: false, reason: "Be concise (under 50 words)." };
-    if (wordCount > 0 && wordCount < 3) return { valid: false, reason: "Insight is too brief." };
-    
-    return { valid: true };
-};
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+            const lowerText = text.toLowerCase();
+            const globalToxicPattern = /([đd]m|vcl|l[oô]n|b[uū]oi|f[uū]ck|sh[iî]t|b[iî]tch|p[uū]ssy|d[iî]ck|p[oô]rn|n[iî]gga|s[l]ut)/i;
+            if (globalToxicPattern.test(lowerText)) return { valid: false, reason: "Content violates Opus Global Vibe standards." };
+            if (/(.)\1{10,}/.test(text.replace(/\s/g, ''))) return { valid: false, reason: "Repetitive patterns are restricted." };
+            if (wordCount > 50) return { valid: false, reason: "Be concise (under 50 words)." };
+            if (wordCount > 0 && wordCount < 3) return { valid: false, reason: "Insight is too brief." };
+            return { valid: true };
+        };
 
         // --- 4. COMMENT & APPRECIATE LOGIC ---
-        const listenToComments = (spotId) => {
-            db.collection("comments")
+        // Load initial comments or reload
+        const listenToComments = (spotId, isLoadMore = false) => {
+            let query = db.collection("comments")
                 .where("spotId", "==", spotId)
-                .orderBy("timestamp", "asc")
-                .onSnapshot((snapshot) => {
-                    const commentList = document.getElementById('comment-list');
-                    if (!commentList) return;
-                    if (snapshot.empty) {
-                        commentList.innerHTML = `<p class="text-[10px] text-white/20 uppercase tracking-widest italic">No insights yet...</p>`;
-                        return;
-                    }
-                    const currentUser = auth.currentUser;
-                    commentList.innerHTML = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        const initial = data.userName ? data.userName.charAt(0).toUpperCase() : 'E';
-                        const isOwner = currentUser && currentUser.uid === data.userId;
-                        
-                        return `
-                            <div class="comment-node group">
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">${initial}</div>
-                                        <span class="text-[9px] text-white/50 uppercase tracking-tighter">${data.userName || 'Anonymous'}</span>
-                                    </div>
-                                    ${isOwner ? `<button onclick="deleteComment('${doc.id}')" class="opacity-0 group-hover:opacity-100 text-[8px] text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-all">Delete</button>` : ''}
+                .orderBy("timestamp", "desc")
+                .limit(commentsPerPage);
+
+            if (isLoadMore && lastVisibleComment) {
+                query = query.startAfter(lastVisibleComment);
+            } else {
+                // Clear list if refreshing
+                const list = document.getElementById('comment-list');
+                if(list && !isLoadMore) list.innerHTML = '';
+            }
+
+            query.get().then((snapshot) => {
+                const commentList = document.getElementById('comment-list');
+                const loadMoreBtn = document.getElementById('load-more-comments');
+                if (!commentList) return;
+
+                if (snapshot.empty && !isLoadMore) {
+                    commentList.innerHTML = `<p class="text-[10px] text-white/20 uppercase tracking-widest italic">No insights yet...</p>`;
+                    if(loadMoreBtn) loadMoreBtn.style.display = 'none';
+                    return;
+                }
+
+                lastVisibleComment = snapshot.docs[snapshot.docs.length - 1];
+                const currentUser = auth.currentUser;
+
+                const html = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const initial = data.userName ? data.userName.charAt(0).toUpperCase() : 'E';
+                    const isOwner = currentUser && currentUser.uid === data.userId;
+                    return `
+                        <div class="comment-node group animate-in fade-in duration-700">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold">${initial}</div>
+                                    <span class="text-[9px] text-white/50 uppercase tracking-tighter">${data.userName || 'Anonymous'}</span>
                                 </div>
-                                <p class="text-sm text-white/70 font-light ml-9">${data.text}</p>
-                            </div>`;
-                    }).join('');
-                });
+                                ${isOwner ? `<button onclick="deleteComment('${doc.id}')" class="opacity-0 group-hover:opacity-100 text-[8px] text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-all">Delete</button>` : ''}
+                            </div>
+                            <p class="text-sm text-white/70 font-light ml-9">${data.text}</p>
+                        </div>`;
+                }).join('');
+
+                commentList.insertAdjacentHTML('beforeend', html);
+
+                // Show/Hide Load More
+                if (snapshot.docs.length < commentsPerPage) {
+                    if(loadMoreBtn) loadMoreBtn.style.display = 'none';
+                } else if(loadMoreBtn) {
+                    loadMoreBtn.style.display = 'block';
+                }
+            });
         };
 
         const listenToAppreciates = (spotId) => {
@@ -162,18 +181,15 @@
         window.handleAppreciate = async () => {
             const user = auth.currentUser;
             if (!user) { alert("Please Enter Opus to appreciate art."); return; }
-            
             const spotId = spot.id || spot.name;
             const docRef = db.collection("appreciates").doc(spotId);
             const btn = document.getElementById('appreciate-btn');
-            
             try {
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(docRef);
                     const data = doc.exists ? doc.data() : { count: 0, voters: [] };
                     const voters = data.voters || [];
                     let newCount = data.count || 0;
-
                     if (voters.includes(user.uid)) {
                         newCount = Math.max(0, newCount - 1);
                         const newVoters = voters.filter(id => id !== user.uid);
@@ -186,12 +202,13 @@
                         setTimeout(() => btn.classList.remove('active'), 1000);
                     }
                 });
-            } catch (e) { console.error("Transaction failed: ", e); }
+            } catch (e) { console.error(e); }
         };
 
         window.deleteComment = async (id) => {
             if(confirm("Are you sure you want to remove this insight?")) {
                 await db.collection("comments").doc(id).delete();
+                renderPage(); // Refresh list
             }
         };
 
@@ -202,24 +219,17 @@
                 try { await auth.signInWithPopup(provider); renderPage(); } catch (error) { console.error(error); }
                 return;
             }
-
             const lastPost = localStorage.getItem(`opus_cooldown_${user.uid}`);
             const now = Date.now();
             if (lastPost && (now - lastPost < 5 * 60 * 1000)) {
-                const timeLeft = Math.ceil((5 * 60 * 1000 - (now - lastPost)) / 1000 / 60);
-                alert(`Please wait ${timeLeft} minute(s) before posting your next insight. Reflection takes time.`);
+                alert(`Reflection takes time. Please wait.`);
                 return;
             }
-
             const input = document.getElementById('user-comment');
             const msg = input.value.trim();
             if(!msg) return;
-
             const check = cleanVibeFilter(msg);
-            if(!check.valid) {
-                alert(`Opus Vibe Guard: ${check.reason}`);
-                return;
-            }
+            if(!check.valid) { alert(`Opus Vibe Guard: ${check.reason}`); return; }
 
             try {
                 await db.collection("comments").add({
@@ -231,9 +241,9 @@
                 });
                 localStorage.setItem(`opus_cooldown_${user.uid}`, Date.now());
                 input.value = "";
-                const display = document.getElementById('word-count-display');
-                if(display) display.innerText = "0 / 50 Words";
-            } catch (error) { console.error("Post failed", error); }
+                lastVisibleComment = null; // Reset pagination to see new comment
+                listenToComments(spot.id || spot.name); 
+            } catch (error) { console.error(error); }
         };
 
         // --- 5. CORE UI FUNCTIONS ---
@@ -259,7 +269,6 @@
             const container = document.getElementById('app-interface');
             const hasAudio = spot.audioUrl && spot.audioUrl.trim() !== "";
             const user = auth.currentUser;
-            
             if(hasAudio && !atmosphereAudio) {
                 atmosphereAudio = new Audio(spot.audioUrl);
                 atmosphereAudio.loop = true;
@@ -321,7 +330,13 @@
                                     <h2 class="text-[10px] font-black text-yellow-500 uppercase tracking-[0.6em]">Artist Discussion</h2>
                                     <div class="flex-1 h-[1px] bg-white/5"></div>
                                 </div>
+                                
                                 <div id="comment-list" class="space-y-10"></div>
+                                
+                                <button id="load-more-comments" onclick="listenToComments(spot.id || spot.name, true)" class="mx-auto mt-8 hidden text-[8px] text-yellow-500/50 hover:text-yellow-500 uppercase tracking-[0.3em] transition-all">
+                                    Load More Insights +
+                                </button>
+
                                 <div class="mt-16 p-6 md:p-10 glass rounded-[30px] border border-white/5 group focus-within:border-yellow-500/40 transition-all">
                                     <textarea id="user-comment" placeholder="${user ? 'Leave an elite insight...' : 'Sign in to join the discussion...'}" class="w-full bg-transparent border-none text-sm font-light text-white outline-none resize-none h-20 placeholder:text-white/10" ${!user ? 'disabled' : ''}></textarea>
                                     <div class="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
@@ -341,6 +356,7 @@
             initSwipe();
             initWordCounter();
             if(window.lucide) lucide.createIcons();
+            lastVisibleComment = null; // Reset for new render
             listenToComments(spot.id || spot.name);
             listenToAppreciates(spot.id || spot.name);
         };
@@ -391,7 +407,7 @@
 
         auth.onAuthStateChanged(() => { renderPage(); });
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (BẢO MẬT TUYỆT ĐỐI) ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
