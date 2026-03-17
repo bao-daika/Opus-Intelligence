@@ -93,13 +93,12 @@
 
         const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
         let currentSlide = 0;
-        const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
+        const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
 
-        // Pagination State
         let lastVisibleComment = null;
         let commentsPerPage = 5;
-        let unsubscribeComments = null;
 
+        // --- 3. VIBE FILTER LOGIC ---
         const cleanVibeFilter = (text) => {
             const words = text.trim().split(/\s+/).filter(w => w.length > 0);
             const wordCount = words.length;
@@ -112,8 +111,7 @@
             return { valid: true };
         };
 
-        // --- 4. COMMENT & APPRECIATE LOGIC ---
-        // Load initial comments or reload
+        // --- 4. DATA LISTENERS ---
         const listenToComments = (spotId, isLoadMore = false) => {
             let query = db.collection("comments")
                 .where("spotId", "==", spotId)
@@ -123,7 +121,6 @@
             if (isLoadMore && lastVisibleComment) {
                 query = query.startAfter(lastVisibleComment);
             } else {
-                // Clear list if refreshing
                 const list = document.getElementById('comment-list');
                 if(list && !isLoadMore) list.innerHTML = '';
             }
@@ -161,7 +158,6 @@
 
                 commentList.insertAdjacentHTML('beforeend', html);
 
-                // Show/Hide Load More
                 if (snapshot.docs.length < commentsPerPage) {
                     if(loadMoreBtn) loadMoreBtn.style.display = 'none';
                 } else if(loadMoreBtn) {
@@ -178,6 +174,7 @@
             });
         };
 
+        // --- 5. ACTIONS ---
         window.handleAppreciate = async () => {
             const user = auth.currentUser;
             if (!user) { alert("Please Enter Opus to appreciate art."); return; }
@@ -208,7 +205,7 @@
         window.deleteComment = async (id) => {
             if(confirm("Are you sure you want to remove this insight?")) {
                 await db.collection("comments").doc(id).delete();
-                renderPage(); // Refresh list
+                renderPage();
             }
         };
 
@@ -241,12 +238,12 @@
                 });
                 localStorage.setItem(`opus_cooldown_${user.uid}`, Date.now());
                 input.value = "";
-                lastVisibleComment = null; // Reset pagination to see new comment
+                lastVisibleComment = null;
                 listenToComments(spot.id || spot.name); 
             } catch (error) { console.error(error); }
         };
 
-        // --- 5. CORE UI FUNCTIONS ---
+        // --- 6. CORE UI ---
         const toggleVibe = () => {
             if (!atmosphereAudio) return;
             const vibeBtn = document.getElementById('vibe-btn');
@@ -330,12 +327,8 @@
                                     <h2 class="text-[10px] font-black text-yellow-500 uppercase tracking-[0.6em]">Artist Discussion</h2>
                                     <div class="flex-1 h-[1px] bg-white/5"></div>
                                 </div>
-                                
                                 <div id="comment-list" class="space-y-10"></div>
-                                
-                                <button id="load-more-comments" onclick="listenToComments(spot.id || spot.name, true)" class="mx-auto mt-8 hidden text-[8px] text-yellow-500/50 hover:text-yellow-500 uppercase tracking-[0.3em] transition-all">
-                                    Load More Insights +
-                                </button>
+                                <button id="load-more-comments" onclick="listenToComments(spot.id || spot.name, true)" class="mx-auto mt-8 hidden text-[8px] text-yellow-500/50 hover:text-yellow-500 uppercase tracking-[0.3em] transition-all">Load More Insights +</button>
 
                                 <div class="mt-16 p-6 md:p-10 glass rounded-[30px] border border-white/5 group focus-within:border-yellow-500/40 transition-all">
                                     <textarea id="user-comment" placeholder="${user ? 'Leave an elite insight...' : 'Sign in to join the discussion...'}" class="w-full bg-transparent border-none text-sm font-light text-white outline-none resize-none h-20 placeholder:text-white/10" ${!user ? 'disabled' : ''}></textarea>
@@ -356,12 +349,11 @@
             initSwipe();
             initWordCounter();
             if(window.lucide) lucide.createIcons();
-            lastVisibleComment = null; // Reset for new render
             listenToComments(spot.id || spot.name);
             listenToAppreciates(spot.id || spot.name);
         };
 
-        // --- 6. SLIDER & UTILS ---
+        // --- 7. UTILS ---
         window.changeSlide = (direction) => {
             const nextIdx = currentSlide + direction;
             if (nextIdx >= 0 && nextIdx < photoGallery.length) goToSlide(nextIdx);
@@ -407,9 +399,14 @@
 
         auth.onAuthStateChanged(() => { renderPage(); });
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (Kích hoạt 100%) ---
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false; };
+        document.onkeydown = e => { 
+            if (e.keyCode == 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+                (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+            ) return false; 
+        };
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
         document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
     </script>
