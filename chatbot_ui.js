@@ -259,7 +259,7 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     msgBox.scrollTop = msgBox.scrollHeight;
 }
 
-// --- MASTERPIECE FORM: UPLOAD TO OPUS MAP ---
+// --- MASTERPIECE FORM: UPLOAD TO OPUS MAP (ELITE 2027) ---
 window.injectUploadAction = (tempImgData) => {
     addChatMessageUI("MASTERPIECE DETECTED! Upload your masterpiece to Opus Map?", false);
     
@@ -269,12 +269,21 @@ window.injectUploadAction = (tempImgData) => {
     formWrapper.className = "flex flex-col gap-2 p-4 glass border border-yellow-500/30 rounded-2xl mt-2 w-[90%] self-start animate-fade-in";
     
     formWrapper.innerHTML = `
-        <input type="text" id="final-title" class="opus-form-input" placeholder="Title (e.g. Midnight Pulse)">
+        <input type="text" id="final-title" class="opus-form-input" placeholder="Title (Max 5 words)">
         <input type="text" id="final-hardware" class="opus-form-input" placeholder="Hardware (e.g. Sony A7R V)">
         <textarea id="final-desc" class="opus-form-input" placeholder="Description..." rows="2"></textarea>
+        
+        <div class="text-[9px] text-white/40 mb-1 uppercase tracking-tighter">Artist Social Links (Optional)</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+            <input type="text" id="link-ig" class="opus-form-input !mb-0" placeholder="Instagram">
+            <input type="text" id="link-yt" class="opus-form-input !mb-0" placeholder="YouTube">
+            <input type="text" id="link-fb" class="opus-form-input !mb-0" placeholder="Facebook">
+            <input type="text" id="link-li" class="opus-form-input !mb-0" placeholder="LinkedIn">
+        </div>
+
         <div class="flex gap-2">
             <button id="final-upload-btn" class="flex-1 py-2 bg-yellow-500 text-black rounded-full font-black text-[10px] uppercase hover:scale-105 transition-all">
-                Send
+                Go Global
             </button>
             <button id="final-close-btn" class="flex-1 py-2 bg-white/10 text-white rounded-full font-black text-[10px] uppercase hover:bg-white/20 transition-all">
                 Close
@@ -296,7 +305,13 @@ window.injectUploadAction = (tempImgData) => {
         const metadata = {
             title: document.getElementById('final-title').value.trim(),
             hardware: document.getElementById('final-hardware').value.trim(),
-            desc: document.getElementById('final-desc').value.trim()
+            desc: document.getElementById('final-desc').value.trim(),
+            artistLinks: {
+                ig: document.getElementById('link-ig').value.trim() || "None",
+                yt: document.getElementById('link-yt').value.trim() || "None",
+                fb: document.getElementById('link-fb').value.trim() || "None",
+                li: document.getElementById('link-li').value.trim() || "None"
+            }
         };
 
         if (!metadata.title || !metadata.hardware) {
@@ -315,7 +330,7 @@ window.injectUploadAction = (tempImgData) => {
             setTimeout(() => formWrapper.remove(), 3000);
         } else {
             btn.disabled = false;
-            btn.innerText = "Send";
+            btn.innerText = "Go Global";
             alert("Opus Error: Secure Upload Failed.");
         }
     };

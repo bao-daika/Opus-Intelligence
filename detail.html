@@ -61,6 +61,9 @@
         .appreciate-btn { transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .appreciate-btn.active { transform: scale(1.2); filter: drop-shadow(0 0 12px #fbbf24); }
 
+        /* Chống đè chatbot */
+        #chatbot-container { z-index: 9999 !important; }
+
         @media (max-height: 667px) {
             .photo-stage { height: 55vh; }
             .info-section { padding: 1.5rem !important; }
@@ -70,6 +73,8 @@
 <body>
 
     <div id="app-interface"></div>
+
+    <div id="chatbot-root"></div>
 
     <script>
         // --- 1. FIREBASE CONFIG ---
@@ -93,7 +98,7 @@
 
         const photoGallery = (spot.images && Array.isArray(spot.images)) ? spot.images : (spot.imageUrl ? [spot.imageUrl] : []);
         let currentSlide = 0;
-        const navUrl = `https://www.google.com/maps?q=${spot.lat},${spot.lng}`;
+        const navUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
         let lastVisibleComment = null;
         let commentsPerPage = 5;
@@ -111,7 +116,7 @@
             return { valid: true };
         };
 
-        // --- 4. DATA LISTENERS (FIXED) ---
+        // --- 4. DATA LISTENERS ---
         const listenToComments = (spotId, isLoadMore = false) => {
             const commentList = document.getElementById('comment-list');
             const loadMoreBtn = document.getElementById('load-more-comments');
@@ -178,31 +183,50 @@
 
         // --- 5. ACTIONS ---
         window.handleAppreciate = async () => {
-            const user = auth.currentUser;
-            if (!user) { alert("Please Enter Opus to appreciate art."); return; }
-            const spotId = spot.id || spot.name;
-            const docRef = db.collection("appreciates").doc(spotId);
-            const btn = document.getElementById('appreciate-btn');
-            try {
-                await db.runTransaction(async (transaction) => {
-                    const doc = await transaction.get(docRef);
-                    const data = doc.exists ? doc.data() : { count: 0, voters: [] };
-                    const voters = data.voters || [];
-                    let newCount = data.count || 0;
-                    if (voters.includes(user.uid)) {
-                        newCount = Math.max(0, newCount - 1);
-                        const newVoters = voters.filter(id => id !== user.uid);
-                        transaction.set(docRef, { count: newCount, voters: newVoters }, { merge: true });
-                    } else {
-                        newCount = newCount + 1;
-                        voters.push(user.uid);
-                        transaction.set(docRef, { count: newCount, voters: voters }, { merge: true });
-                        btn.classList.add('active');
-                        setTimeout(() => btn.classList.remove('active'), 1000);
-                    }
+    const user = auth.currentUser;
+    if (!user) { alert("Please Enter Opus to appreciate art."); return; }
+    
+    const spotId = spot.id || spot.name;
+    const docRef = db.collection("appreciates").doc(spotId);
+    const btn = document.getElementById('appreciate-btn');
+
+    // Hiệu ứng feedback ngay lập tức (Optimistic UI)
+    btn.classList.add('active');
+    setTimeout(() => btn.classList.remove('active'), 1000);
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(docRef);
+            
+            // Nếu doc chưa tồn tại, khởi tạo mặc định
+            if (!doc.exists) {
+                transaction.set(docRef, { 
+                    count: 1, 
+                    voters: [user.uid] 
                 });
-            } catch (e) { console.error(e); }
-        };
+                return;
+            }
+
+            const data = doc.data();
+            const voters = data.voters || [];
+            let currentCount = data.count || 0;
+
+            if (voters.includes(user.uid)) {
+                // Nếu đã like rồi -> Unlike (trừ 1)
+                const newCount = Math.max(0, currentCount - 1);
+                const newVoters = voters.filter(id => id !== user.uid);
+                transaction.update(docRef, { count: newCount, voters: newVoters });
+            } else {
+                // Nếu chưa like -> Like (cộng 1)
+                const newCount = currentCount + 1;
+                voters.push(user.uid);
+                transaction.update(docRef, { count: newCount, voters: voters });
+            }
+        });
+    } catch (e) {
+        console.error("Opus Sync Error:", e);
+    }
+};
 
         window.deleteComment = async (id) => {
             if(confirm("Are you sure you want to remove this insight?")) {
@@ -267,6 +291,10 @@
             const container = document.getElementById('app-interface');
             const hasAudio = spot.audioUrl && spot.audioUrl.trim() !== "";
             const user = auth.currentUser;
+            
+            // Logic cho User vs Admin
+            const isAdmin = user && user.email === "admin@opus.com"; // sếp thay email admin ở đây
+
             if(hasAudio && !atmosphereAudio) {
                 atmosphereAudio = new Audio(spot.audioUrl);
                 atmosphereAudio.loop = true;
@@ -285,7 +313,9 @@
                             </button>` : ''}
                         </div>
                         <div class="flex justify-end">
-                            <div class="glass px-3 py-1.5 rounded-full font-bold text-[7px] text-white/30 uppercase tracking-[0.2em] border border-white/5">Opus Insight</div>
+                            <div class="glass px-3 py-1.5 rounded-full font-bold text-[7px] text-white/30 uppercase tracking-[0.2em] border border-white/5">
+                                ${isAdmin ? 'Admin Console' : 'Opus Insight'}
+                            </div>
                         </div>
                     </div>
 
@@ -400,7 +430,7 @@
 
         auth.onAuthStateChanged(() => { renderPage(); });
 
-        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (Kích hoạt 100%) ---
+        // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = e => { 
             if (e.keyCode == 123 || 
@@ -411,5 +441,8 @@
         document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
         document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
     </script>
+
+    <script src="chatbot_brain.js"></script>
+    <script src="chatbot_ui.js"></script>
 </body>
 </html>

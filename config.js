@@ -1,8 +1,8 @@
 // --- OPUS CONFIGURATION 2027 ---
 const menuConfig = [
-    { id: "urban", label: "URBAN", icon: "building", dataKey: "Urban Landscapes" },
-    { id: "nature", label: "NATURE", icon: "mountain-snow", dataKey: "Nature Landscapes" },
-    { id: "vlog", label: "VLOG", icon: "trending-up", dataKey: "Vlog Hotspots" }
+    { id: "urban", label: "URBAN", icon: "building", dataKey: "Urban" }, // Khớp với AI
+    { id: "nature", label: "NATURE", icon: "mountain-snow", dataKey: "Nature" }, // Khớp với AI
+    { id: "vlog", label: "VLOG", icon: "trending-up", dataKey: "Vlog" }
 ];
 
 // FIREBASE ELITE KEY 2027

@@ -1,11 +1,11 @@
-// --- OPUS DATA: URBAN LANDSCAPES (2026-2027 GLOBAL EDITION) ---
-// Mentor Opus: Advanced Array Structure with High-Value Narrative Content
+// --- OPUS DATA: URBAN (2026-2027 GLOBAL EDITION) ---
+// Mentor Opus: Synchronized with config.js dataKey: "Urban"
 
 const urbanSpots = [
     {
         id: "urban-toronto-cntower",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban", // Đã đồng bộ với config.js
         name: "CN Tower Twilight",
         lat: 43.642566, 
         lng: -79.387054,
@@ -20,7 +20,7 @@ const urbanSpots = [
     {
         id: "urban-paris-eiffel",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban",
         name: "Eiffel Tower Majesty",
         lat: 48.858370, 
         lng: 2.294481,
@@ -35,7 +35,7 @@ const urbanSpots = [
     {
         id: "urban-mexico-angel",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban",
         name: "Guardian of Mexico",
         lat: 19.427021, 
         lng: -99.167665,
@@ -50,14 +50,13 @@ const urbanSpots = [
     {
         id: "urban-russia-basil",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban",
         name: "St. Basil's Midnight",
         lat: 55.752523, 
         lng: 37.623088,
         images: [
             "Urban/Russia.jpg"
-        ],
-        audioUrl: "Audio/Russia.mp3",
+        ],        audioUrl: "Audio/Russia.mp3",
         camera: "Hasselblad X2D 100C | XCD 38mm f/2.5",
         price: "Not for sale",
         Description: "Commissioned by Ivan the Terrible in 1555, this Red Square icon features nine vibrant onion domes, each representing a separate chapel. Its design is intended to resemble the flames of a bonfire rising into the sky. **Secret:** Legend states that Ivan blinded the architect, Postnik Yakovlev, so he could never recreate its beauty elsewhere. Captured at midnight, the high-resolution sensor reveals the surreal textures and 'frozen' history of the Kremlin's neighbor."
@@ -65,7 +64,7 @@ const urbanSpots = [
     {
         id: "urban-china-shanghai",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban",
         name: "Shanghai Pulse",
         lat: 31.235529, 
         lng: 121.501154, 
@@ -80,7 +79,7 @@ const urbanSpots = [
     {
         id: "urban-iran-mosque",
         catId: "urban",
-        category: "Urban Landscapes",
+        category: "Urban",
         name: "Kaleidoscope of Faith",
         lat: 29.608300, 
         lng: 52.548400,
@@ -94,4 +93,4 @@ const urbanSpots = [
     }
 ];
 
-console.log("Opus System: Global 2027 Data Assets Synchronized.");
+console.log("Opus System: Global 2027 Urban Data Assets Synchronized with AI Logic.");

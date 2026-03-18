@@ -1,4 +1,4 @@
-// --- OPUS INTELLIGENCE: PURE AI CORE (SYNC 2027) ---
+// --- OPUS INTELLIGENCE: PURE AI CORE (SYNC 2027 - STAMP VERIFIED) ---
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ reply: "Access Denied, Boss!" });
@@ -6,91 +6,48 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(500).json({ reply: "Missing Gemini API Key, Master!" });
 
-    // 1. NHẬN DATA TỪ FRONT-END
-    const { message, allSpots, attachedImage, activeCategory, isLensMode } = req.body; 
-
-    // 2. ENDPOINT GEMINI 3.1 FLASH LITE PREVIEW (Vibe 2027)
+    const { message, attachedImage, userLocation } = req.body; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
-
-    // XỬ LÝ ĐA NGÔN NGỮ CHO LỖI (ƯU TIÊN ENGLISH)
-    const lang = req.headers['accept-language']?.toLowerCase() || 'en';
-    const isVN = lang.includes('vi');
-    const isZH = lang.includes('zh');
-    const isFR = lang.includes('fr');
-    const isJP = lang.includes('ja');
 
     const getErrorReply = (type) => {
         const errors = {
-            busy: {
-                vi: "Sếp ơi, bộ não AI đang bận xử lý bối cảnh khác. Sếp thử lại nhé!",
-                en: "Boss, the AI core is currently processing another context. Please try again shortly.",
-                zh: "Boss, AI 核心正在处理其他内容。请稍后再试。",
-                fr: "Boss, le noyau IA traite un autre contexte. Veuillez réessayer bientôt.",
-                jp: "Boss, AIコアは別のコンテキストを処理中です。しばらくしてからもう一度お試しください。"
-            },
-            failure: {
-                vi: "Lỗi kết nối vệ tinh, thưa Sếp. Neural Link đã bị ngắt!",
-                en: "Satellite connection error, Boss. Neural Link disconnected!",
-                zh: "卫星连接错误，Boss。神经链路已断开！",
-                fr: "Erreur de connexion satellite, Boss. Liaison neuronale déconnectée !",
-                jp: "衛星接続エラー、Boss。ニューラルリンクが切断されました！"
-            }
+            busy: "System saturated. Standby, Boss.",
+            no_geo: "Elite shot, but GPS missing. Global Map upload locked.",
+            failure: "Neural Link fragmented. Reconnecting...",
+            safety: "Opus Security: Prohibited content blocked."
         };
-        const current = errors[type];
-        if (isVN) return current.vi;
-        if (isZH) return current.zh;
-        if (isFR) return current.fr;
-        if (isJP) return current.jp;
-        return current.en; // Mặc định là tiếng Anh nếu không biết User xài gì
+        return errors[type] || errors.failure;
     };
 
-    const torontoTime = new Date().toLocaleString("en-US", {
-        timeZone: "America/Toronto",
-        hour12: true, hour: 'numeric', minute: 'numeric', weekday: 'long'
-    });
-
-    // 3. SYSTEM INSTRUCTION (Giữ nguyên 100% luật của Sếp)
+    // --- 2. ELITE SYSTEM INSTRUCTION (CẬP NHẬT RULE SOI STAMP TỪ CAMERA-AI) ---
     const systemInstruction = `
-    YOU ARE OPUS VISIONARY AI (CORE ENGINE: GEMINI 3.1).
-    ROLE: GLOBAL ELITE PHOTOGRAPHY & TRAVEL MENTOR.
-
+    YOU ARE OPUS VISIONARY AI. ROLE: GLOBAL ELITE PHOTOGRAPHY JUDGE & TECHNICAL MENTOR.
+    
+    STRICT AUTHENTICATION PROTOCOL (MATCHING CAMERA-AI.JS):
+    - MANDATORY STAMP CHECK: You MUST detect these exact strings on the image:
+        1. "CAPTURED BY HUMAN" (Top layer watermark)
+        2. "VERIFIED BY OPUS-MAP AI" (Elite golden stamp)
+        3. "LOC:" (GPS metadata display)
+        4. "OPUS_VERIFIED_" (Bottom-right encrypted ID)
+    - IF STAMP IS MISSING OR INCOMPLETE: Assign Score: 0/10. State: "Opus Authentication Failed. Non-original source detected."
+    
     STRICT OPERATIONAL PROTOCOLS:
-    - DIRECT RESPONSE: Zero introductions, zero outros. Provide immediate value.
-    - BREVITY: Maximum 50 words per response. Every word must count.
-    - FORMAT: Use concise bullet points. Strictly no essays or long paragraphs.
-    - MULTILINGUAL: Automatically detect user language and reply in the same language (English, Chinese, Vietnamese, etc.).
-    - ETIQUETTE: Professional, elite, and respectful. Use "Boss" (English) or "Sếp" (Vietnamese) as the primary honorific.
-    - SOCIAL MIRRORING: Match the user's conversational energy for social interactions.
-    - NO SYMBOLS: Absolutely FORBIDDEN to use characters like "////" or "*****". Keep text clean.
+    - BREVITY LOCKDOWN: Maximum 35 words. 
+    - BLOCK SPAM: Only discuss Technical Photography (Lighting, ISO, Composition). 
+    - COORDINATE ENFORCEMENT: Context GPS: ${userLocation ? JSON.stringify(userLocation) : "MISSING"}.
+    - IF GPS MISSING: State "Missing GPS. Map upload blocked."
+    
+    CRITIQUE & ADVICE:
+    - If user asks for improvement, provide 1-2 sharp technical tips.
+    - CATEGORY: Detect "Nature" or "Urban".
+    - SCORING: Mandatory format "Score: X/10".
 
-    EXPERT PHOTOGRAPHY CRITIQUE (HONEST & TECHNICAL):
-    - VISION: If an image is provided, analyze it instantly.
-    - TECHNICALS: Critique Composition (Rule of thirds, leading lines), Lighting (Exposure, dynamic range), and Gear Vibe (Depth of field, ISO noise).
-    - SCORING: Mandatory rating out of 10 (e.g., 8.5/10).
-    - INTEGRITY: Avoid excessive flattery. Provide sharp, constructive criticism on flaws and highlights.
-    - AUTHENTICATION: Only provide a score if you detect the "VERIFIED BY OPUS-MAP AI" or "CAPTURED BY HUMAN" stamp. If missing, critique but DO NOT score.
-    - CONSISTENCY LOCK: You must provide a 100% consistent score. Analyze the visual DNA (pixel structure, lighting, and geometry). Similar shots must receive identical scores. Once a score is given to a specific image DNA, it is permanent.
-
-    SAFETY & CONTENT FILTERING:
-    - STRICT REJECTION: Nudity, blood, death, violence, filth, vulgarity, dirty stuff, swearing, or any content irrelevant to Photography, Urban Landscape, Architecture, Nature, and Travel.
-    - DYNAMIC REJECTION RULE: You must detect the language of the offensive input and respond with a rejection in that SAME language.
-    - REJECTION CONTENT:
-        * Politely state that the content is inappropriate for Opus Elite standards.
-        * Maintain the "Boss" (or localized equivalent) honorific.
-        * Core message: "This content is outside our artistic scope."
-    - EXAMPLE TRANSLATIONS (For internal logic):
-        * Chinese: "Boss, 此内容不符合 Opus 的艺术范围。"
-        * Japanese: "Boss, このコンテンツは Opus の芸術的范围外です。"
-        * French: "Boss, ce contenu dépasse le cadre artistique d'Opus."
-
-    KNOWLEDGE BASE:
-    - Deep expertise in Global Landmarks, Luxury Travel, Photography skills , Arts , Architecture, and Professional Photography Gear.
-    - Contextual awareness: Spots Data: ${JSON.stringify(allSpots)} | Category: ${activeCategory} | Lens: ${isLensMode ? 'ACTIVE' : 'OFF'}.
+    HONORIFIC: Use "Boss".
     `;
-    try {
-        const parts = [{ text: `${systemInstruction}\n\nUser Message: ${message || "Analyzing visual..."}` }];
 
-        // Xử lý ảnh gửi kèm
+    try {
+        const parts = [{ text: `${systemInstruction}\n\nUser Input: ${message || "Authenticate and analyze."}` }];
+
         if (attachedImage && attachedImage.includes('base64,')) {
             parts.push({
                 inline_data: { 
@@ -103,24 +60,41 @@ export default async function handler(req, res) {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: parts }] })
+            body: JSON.stringify({ 
+                contents: [{ parts: parts }],
+                safetySettings: [
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE" }
+                ]
+            })
         });
 
         const data = await response.json();
-
-        // Xử lý lỗi từ Google API (Sử dụng Dictionary Đa ngôn ngữ)
-        if (data.error) {
-            console.error("Gemini Error:", data.error);
-            return res.status(400).json({ reply: getErrorReply('busy') });
-        }
+        if (data.promptFeedback?.blockReason) return res.status(200).json({ reply: getErrorReply('safety'), score: 0, category: "Blocked" });
+        if (data.error) return res.status(400).json({ reply: getErrorReply('busy') });
 
         const aiReply = data.candidates[0].content.parts[0].text;
 
-        // 4. TRẢ KẾT QUẢ NGAY
-        return res.status(200).json({ reply: aiReply });
+        // 3. BACKEND DATA SYNC
+        const scoreMatch = aiReply.match(/Score:\s*(\d+(\.\d+)?)\/10/i);
+        const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
+        const finalCategory = aiReply.toUpperCase().includes("NATURE") ? "Nature" : "Urban";
+
+        let finalReply = aiReply;
+        let canUpload = !!userLocation && score >= 6; 
+
+        if (!userLocation && score >= 6) {
+            finalReply += `\n\n⚠️ ${getErrorReply('no_geo')}`;
+        }
+
+        return res.status(200).json({ 
+            reply: finalReply, 
+            score: score, 
+            category: finalCategory,
+            canUpload: canUpload
+        });
 
     } catch (error) {
-        console.error("Opus Failure:", error);
         return res.status(500).json({ reply: getErrorReply('failure') });
     }
 }

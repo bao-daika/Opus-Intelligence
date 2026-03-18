@@ -74,8 +74,7 @@ const chatbotBrain = {
                 if (cachedResult) {
                     const memory = JSON.parse(cachedResult);
                     console.log("Opus Brain: Memory Match. Consistent score retrieved.");
-                    if (memory.score >= 9 && window.injectUploadAction) {
-                        // Sếp lưu ý: Truyền thêm category từ memory
+                    if (memory.score >= 6 && window.injectUploadAction) {
                         window.injectUploadAction(activeImage, memory.category || "Urban");
                     }
                     return memory.reply;
@@ -112,7 +111,6 @@ const chatbotBrain = {
             const data = await response.json();
             const aiReply = data.reply || "I am processing your vision, Boss.";
 
-            // LOGIC THẨM ĐỊNH CATEGORY: Urban hay Nature
             const isNature = aiReply.toUpperCase().includes("NATURE") || aiReply.toLowerCase().includes("thiên nhiên");
             const detectedCategory = isNature ? "Nature" : "Urban";
 
@@ -128,7 +126,7 @@ const chatbotBrain = {
                 }));
             }
 
-            if ((score >= 9 || aiReply.toUpperCase().includes("MASTERPIECE")) && window.injectUploadAction && activeImage) {
+            if ((score >= 6 || aiReply.toUpperCase().includes("MASTERPIECE")) && window.injectUploadAction && activeImage) {
                 window.injectUploadAction(activeImage, detectedCategory);
             }
 
@@ -142,7 +140,7 @@ const chatbotBrain = {
     },
 
     /**
-     * SECURE UPLOAD: FIRESTORE BASE64 INJECTION (No Storage Required)
+     * SECURE UPLOAD: FIRESTORE BASE64 INJECTION WITH ARTIST LINKS
      */
     async secureUpload(imageData, metadata) {
         if (!this.checkUploadQuota()) return false;
@@ -165,7 +163,7 @@ const chatbotBrain = {
             const cachedData = JSON.parse(localStorage.getItem(`opus_vision_${imageHash}`));
             const aiScore = cachedData ? cachedData.score : 0;
             
-            // Logic quan trọng: Lấy category do AI quyết định thay vì lấy header-text của user
+            // Logic: Lấy category do AI quyết định
             const finalCategory = (cachedData && cachedData.category) ? cachedData.category : "Urban";
 
             const newPin = {
@@ -177,14 +175,16 @@ const chatbotBrain = {
                 images: [imageData], 
                 timestamp: new Date().toISOString(),
                 verified: "USER", 
-                category: finalCategory, // AI ĐÃ QUYẾT ĐỊNH
+                category: finalCategory,
                 score: aiScore,
-                id: 'opus_' + Date.now()
+                id: 'opus_' + Date.now(),
+                // ĐỒNG BỘ 100% VỚI UI: Lưu Artist Social Links
+                artistLinks: metadata.artistLinks || { ig: "None", yt: "None", fb: "None", li: "None" }
             };
 
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 await firebase.firestore().collection("global_masterpieces").add(newPin);
-                console.log(`Opus 2027: Masterpiece injected into ${finalCategory} collection.`);
+                console.log(`Opus 2027: Masterpiece injected into ${finalCategory} collection with Artist Profile.`);
             }
 
             const quotaKey = `opus_quota_${this.getDeviceId()}`;
@@ -201,7 +201,7 @@ const chatbotBrain = {
     }
 };
 
-console.log("Opus 2027: Global Brain Sync Completed (Firestore Mode).");
+console.log("Opus 2027: Global Brain Sync Completed (Firestore & Artist Links).");
 
 // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA - 100% UNTOUCHED) ---
 document.addEventListener('contextmenu', e => e.preventDefault());
