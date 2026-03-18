@@ -18,7 +18,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
     <style>
-        :root { --gold: #fbbf24; --bg: #020617; --cyan: #06b6d4; --purple-user: #a855f7; --blue-user: #3b82f6; }
+        :root { --gold: #fbbf24; --bg: #020617; --cyan: #06b6d4; --purple-user: #a855f7; --blue-user: #3b82f6; --green-nature: #bef264; }
         body, html { 
             height: 100%; margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; 
             overflow: hidden; position: fixed; width: 100%; 
@@ -64,6 +64,8 @@
         
         /* Markers Glow */
         .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); animation: opus-pulse 2s infinite ease-in-out; }
+        .marker-nature-glow { width: 12px; height: 12px; background: var(--green-nature); border-radius: 50%; box-shadow: 0 0 15px var(--green-nature); animation: opus-pulse 2s infinite ease-in-out; }
+        
         .marker-user-purple { width: 8px; height: 8px; background: var(--purple-user); border-radius: 50%; box-shadow: 0 0 10px var(--purple-user); }
         .marker-user-blue { width: 8px; height: 8px; background: var(--blue-user); border-radius: 50%; box-shadow: 0 0 10px var(--blue-user); }
         @keyframes opus-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.7; } }
@@ -249,11 +251,35 @@
             renderMarkers();
         });
 
-        // --- MAP LOGIC ---
-        let activeCategoryObject = (typeof menuConfig !== 'undefined') ? menuConfig[0] : { id: 'urban', dataKey: 'Urban', label: 'Urban' };
-        const map = L.map('map', { zoomControl: false, attributionControl: false, minZoom: 3, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0 }).setView([25, 10], 3);
+        // --- MAP LOGIC & PERSISTENCE ENGINE 2027 ---
+        // Khôi phục category từ bộ nhớ nếu có
+        const savedCatId = localStorage.getItem('opus_last_cat_id');
+        let activeCategoryObject = (typeof menuConfig !== 'undefined') ? 
+            (menuConfig.find(m => m.id === savedCatId) || menuConfig[0]) : 
+            { id: 'urban', dataKey: 'Urban', label: 'Urban' };
+
+        // Khôi phục vị trí bản đồ cũ
+        const savedView = JSON.parse(localStorage.getItem('opus_map_view')) || { center: [25, 10], zoom: 3 };
+
+        const map = L.map('map', { 
+            zoomControl: false, 
+            attributionControl: false, 
+            minZoom: 3, 
+            maxBounds: [[-90, -180], [90, 180]], 
+            maxBoundsViscosity: 1.0 
+        }).setView(savedView.center, savedView.zoom);
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true }).addTo(map);
         
+        // Theo dõi và lưu trạng thái bản đồ khi user di chuyển hoặc zoom
+        map.on('moveend', () => {
+            const currentView = {
+                center: [map.getCenter().lat, map.getCenter().lng],
+                zoom: map.getZoom()
+            };
+            localStorage.setItem('opus_map_view', JSON.stringify(currentView));
+        });
+
         let markerClusterGroup = L.markerClusterGroup({ 
             showCoverageOnHover: false, maxClusterRadius: 40,
             iconCreateFunction: (c) => L.divIcon({html:`<div class="glass flex items-center justify-center rounded-full w-10 h-10 border border-yellow-500 text-yellow-500 font-black text-[10px]">${c.getChildCount()}</div>`, className:'custom-cluster', iconSize:[40,40]})
@@ -270,7 +296,10 @@
             markerClusterGroup.clearLayers();
             const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
             const newMarkers = filtered.map(spot => {
-                let iconHtml = `<div class="marker-glow"></div>`;
+                let iconHtml = `<div class="marker-glow"></div>`; 
+                if (spot.category === "Nature" && spot.verified !== "USER") {
+                    iconHtml = `<div class="marker-nature-glow"></div>`;
+                }
                 if (spot.verified === "USER") {
                     iconHtml = spot.category === "Urban" ? `<div class="marker-user-purple"></div>` : `<div class="marker-user-blue"></div>`;
                 }
@@ -304,6 +333,7 @@
 
         window.handleMenuClick = (id) => { 
             activeCategoryObject = menuConfig.find(m => m.id === id); 
+            localStorage.setItem('opus_last_cat_id', id); // Lưu lại category đang chọn
             document.getElementById('header-text').innerText = activeCategoryObject.label; 
             toggleMenu(); setTimeout(renderMarkers, 100); renderMenu(); 
         }
