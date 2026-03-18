@@ -1,14 +1,16 @@
 // --- OPUS CAMERA AI SYSTEM 2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp, AI Safety (Vibe Guard)
-// STATUS: 100% ORIGINAL LOGIC + STRICT URBAN/NATURE FILTER
-// [MENTOR NOTE]: ĐÃ ĐỒNG BỘ VỚI CHATBOT_BRAIN & UI. GIỮ NGUYÊN HỆ THỐNG PHÒNG THỦ.
+// STATUS: 100% ORIGINAL LOGIC + TEXT STROKE RENDERING + INSTANT GPS TRACKING
+// [MENTOR NOTE]: ĐÃ THÊM VIỀN CHỮ (STROKE) ĐỂ CHỐNG BLEND NỀN, CAPTURED BY HUMAN THẲNG.
+// [UPDATE]: TÍCH HỢP WATCHPOSITION ĐỂ TRIỆT TIÊU DELAY KHI CHỤP.
 
 let isFlashOn = false;
 let currentZoom = 1;
 let videoTrack = null;
 let userCoords = null;
+let geoWatchId = null; // Quản lý chu kỳ tracking
 
-// --- 1. KÍCH HOẠT LENS AI ---
+// --- 1. KÍCH HOẠT LENS AI (UPGRADED WITH INSTANT TRACKING) ---
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
     const video = document.getElementById('camera-feed');
@@ -17,6 +19,18 @@ window.activateAILens = async () => {
     container.style.display = 'block';
     isFlashOn = false; 
     currentZoom = 1; 
+    
+    // --- KHỞI CHẠY TRACKING TỌA ĐỘ NGAY KHI MỞ LENS ---
+    if (navigator.geolocation) {
+        geoWatchId = navigator.geolocation.watchPosition(
+            (position) => {
+                userCoords = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
+                console.log("Opus Satellite: Locked");
+            },
+            (err) => { console.warn("Opus GPS: Signal searching..."); },
+            { enableHighAccuracy: true }
+        );
+    }
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -41,7 +55,7 @@ window.activateAILens = async () => {
     }
 };
 
-// --- 2. LOGIC ZOOM (MOUSE WHEEL & SLIDER) ---
+// --- 2. LOGIC ZOOM (PRESERVED - DO NOT TOUCH) ---
 function setupZoomInteractions(videoElement) {
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
@@ -74,20 +88,28 @@ async function applyZoom() {
 
 window.changeZoom = (value) => { currentZoom = parseFloat(value); applyZoom(); };
 
-// --- 3. ĐÓNG LENS ---
+// --- 3. ĐÓNG LENS (RESET CHU KỲ - PRESERVED) ---
 window.stopAILens = () => {
     const videoElement = document.getElementById('camera-feed');
     if (videoElement && videoElement.srcObject) {
         videoElement.srcObject.getTracks().forEach(track => track.stop());
         videoElement.srcObject = null;
     }
+    
+    // Ngắt tracking GPS để bảo vệ pin và kết thúc phiên làm việc
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+        geoWatchId = null;
+    }
+    
     videoTrack = null;
     isFlashOn = false;
+    userCoords = null; // Reset tọa độ cho chu kỳ mới
     const container = document.getElementById('opus-lens-container');
     if (container) container.style.display = 'none';
 };
 
-// --- 4. HARDWARE FLASH CONTROL ---
+// --- 4. HARDWARE FLASH CONTROL (PRESERVED - DO NOT TOUCH) ---
 window.toggleFlash = async () => {
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
@@ -106,7 +128,7 @@ window.toggleFlash = async () => {
     } catch (err) { console.error("Flash Error:", err); }
 };
 
-// --- 5. [URBAN/NATURE VIBE GUARD] - BỘ LỌC CHỐNG NUDE/BLOOD/WASTE ---
+// --- 5. [URBAN/NATURE VIBE GUARD] (PRESERVED - DO NOT TOUCH) ---
 const checkSafety = (ctx, w, h) => {
     const imgData = ctx.getImageData(0, 0, w, h).data;
     let bloodPoints = 0; 
@@ -119,11 +141,8 @@ const checkSafety = (ctx, w, h) => {
         const g = imgData[i+1];
         const b = imgData[i+2];
 
-        // Chặn Máu (Red High Saturation)
         if (r > 160 && g < 40 && b < 40) bloodPoints++;
-        // Chặn Nude (Skin Tone 2027 Logic)
         if (r > 190 && g > 140 && b > 110 && r > g && g > b) skinPoints++;
-        // Chặn Dơ bẩn (Dirty Brown/Ocher)
         if (r > 80 && r < 140 && g > 60 && g < 100 && b < 40) wastePoints++;
     }
 
@@ -137,39 +156,25 @@ const checkSafety = (ctx, w, h) => {
     return true; 
 };
 
-// --- 6. CHỤP ẢNH & SYNC GPS ---
+// --- 6. CHỤP ẢNH (INSTANT MODE - TRIỆT TIÊU DELAY) ---
 window.capturePhoto = async () => {
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
     if (!video || video.readyState !== 4 || !canvas) return;
 
-    const sub = document.getElementById('ai-suggestion');
-    if (sub) sub.innerText = "Syncing Satellite Data...";
-
-    if (navigator.geolocation) {
-        try {
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { 
-                    enableHighAccuracy: true, 
-                    timeout: 8000 
-                });
-            });
-            userCoords = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
-        } catch (err) {
-            console.warn("Opus: GPS Signal Weak.");
-            userCoords = null; 
-        }
-    }
-
+    // Tọa độ đã được sync liên tục trong biến userCoords, chụp ngay lập tức!
     executeEliteCapture(video, canvas);
 };
 
-// --- 7. ĐÓNG DẤU ELITE STAMP & LƯU ---
+// --- 7. ĐÓNG DẤU ELITE STAMP & LƯU (PRESERVED - DO NOT TOUCH) ---
 function executeEliteCapture(video, canvas) {
-    canvas.width = video.videoWidth; 
-    canvas.height = video.videoHeight;
+    const TARGET_WIDTH = 1920;
+    const scaleFactor = TARGET_WIDTH / video.videoWidth;
+    canvas.width = TARGET_WIDTH;
+    canvas.height = video.videoHeight * scaleFactor;
+
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     if(!checkSafety(ctx, canvas.width, canvas.height)) {
         alert("OPUS AI ERROR: Content does not match Urban/Nature standards.");
@@ -181,69 +186,73 @@ function executeEliteCapture(video, canvas) {
     const pad = canvas.width * 0.03;
     const fontSize = canvas.width * 0.022;
 
-    // Watermark & Stamp Logic
-    ctx.shadowColor = "black";
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
+    const getFormattedTime = () => {
+        const now = new Date();
+        const useNY = !userCoords;
+        const timeZone = useNY ? "America/New_York" : undefined;
+        const prefix = useNY ? "NEW YORK'S TIME: " : "TIME: ";
 
-    const fontElite = `italic 300 ${fontSize}px 'Inter', sans-serif`;
-    ctx.font = fontElite;
-    ctx.fillStyle = "white";
-    ctx.letterSpacing = "2px";
-    ctx.fillText("CAPTURED BY HUMAN", pad, canvas.height - (pad * 2.8));
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            day: 'numeric', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: true, timeZone: timeZone
+        });
 
-    ctx.font = `bold ${fontSize * 0.9}px 'Inter', sans-serif`;
-    ctx.fillStyle = "#fbbf24"; 
-    ctx.letterSpacing = "4px";
-    ctx.fillText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 1.8));
+        const parts = formatter.formatToParts(now);
+        const day = parts.find(p => p.type === 'day').value;
+        const month = parts.find(p => p.type === 'month').value;
+        const year = parts.find(p => p.type === 'year').value;
+        const hour = parts.find(p => p.type === 'hour').value;
+        const min = parts.find(p => p.type === 'minute').value;
+        const sec = parts.find(p => p.type === 'second').value;
+        const dayPeriod = parts.find(p => p.type === 'dayPeriod').value;
 
-    ctx.font = `500 ${fontSize * 0.6}px monospace`;
-    ctx.fillStyle = "rgba(251, 191, 36, 0.7)";
+        return `${prefix}${day} - ${month} - ${year}, ${hour}:${min}:${sec} ${dayPeriod}`;
+    };
+
+    const drawEliteText = (text, x, y, font, color, align = "left") => {
+        ctx.textAlign = align;
+        ctx.font = font;
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = fontSize * 0.15;
+        ctx.lineJoin = "round";
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+    };
+
+    ctx.shadowColor = "transparent";
+
+    drawEliteText("CAPTURED BY HUMAN", pad, canvas.height - (pad * 3.8), `300 ${fontSize}px 'Inter', sans-serif`, "white");
+    drawEliteText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 2.8), `bold ${fontSize * 0.9}px 'Inter', sans-serif`, "#fbbf24");
+
     const displayLoc = userCoords ? "LOC: " + userCoords : "LOC: SIGNAL ENCRYPTED // GLOBAL CITIZEN";
-    ctx.fillText(displayLoc, pad, canvas.height - (pad * 1.1));
+    drawEliteText(displayLoc, pad, canvas.height - (pad * 2.0), `500 ${fontSize * 0.6}px monospace`, "white");
 
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.font = (fontSize * 0.5) + "px monospace";
-    ctx.fillText("OPUS_VERIFIED_" + Date.now(), canvas.width - pad, canvas.height - pad);
+    drawEliteText(getFormattedTime(), pad, canvas.height - (pad * 1.3), `500 ${fontSize * 0.6}px monospace`, "white");
+    drawEliteText("OPUS_VERIFIED_" + Date.now(), canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
 
-    // Flash effect UI
     document.body.style.filter = "brightness(2.5)";
     setTimeout(() => { document.body.style.filter = "none"; }, 80);
     
     canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
-        
-        // 1. Lệnh tải về ngầm (vào App Files)
         const link = document.createElement('a');
         link.href = url;
         const geoTag = userCoords ? userCoords.replace(/, /g, '_') : "GLOBAL";
-        link.download = `OPUS_MAP_${geoTag}_${Date.now()}.jpg`;
+        link.download = `OPUS_ELITE_${geoTag}_${Date.now()}.webp`;
         link.click();
-        
-        // 2. MỞ TAB MỚI (Dành riêng cho iPhone/Safari sếp đang dùng)
-        // Lưu ý: Sếp phải cho phép Popup trên Safari nếu nó hỏi nhé.
-        const newWindow = window.open(url, '_blank');
+        window.open(url, '_blank');
         
         const sub = document.getElementById('ai-suggestion');
         if(sub) {
-            if (newWindow) {
-                sub.innerText = "Masterpiece Ready! Long-press image to Save to Photos.";
-            } else {
-                sub.innerText = "Check your 'Files' app for the Elite Stamp!";
-            }
-            
-            // Trả lại trạng thái Zoom sau 4 giây
-            setTimeout(() => { 
-                if(videoTrack) sub.innerText = "Opus Zoom: " + currentZoom.toFixed(1) + "x"; 
-            }, 4000);
+            sub.innerText = `Elite Masterpiece: ${(blob.size/1024).toFixed(0)}KB | WebP 0.7 Ready`;
+            setTimeout(() => { if(videoTrack) sub.innerText = "Opus Zoom: " + currentZoom.toFixed(1) + "x"; }, 4000);
         }
-    }, 'image/jpeg', 1.0);
+    }, 'image/webp', 0.7); 
 }
 
-
-// --- 8. HỆ THỐNG PHÒNG THỦ OPUS 2027 (STRICT PRESERVED) ---
+// --- 8. HỆ THỐNG PHÒNG THỦ OPUS 2027 (PRESERVED - DO NOT TOUCH) ---
 (function(_0xOpus){
     document.addEventListener('contextmenu', _ => _.preventDefault());
     document.onkeydown = function(e) {

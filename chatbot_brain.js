@@ -11,7 +11,7 @@ const chatbotBrain = {
     },
 
     /**
-     * QUOTA CHECK: Limit 5 uploads per week per device
+     * QUOTA CHECK: Limit 5 uploads per week per device (PRESERVED 100%)
      */
     checkUploadQuota() {
         const quotaKey = `opus_quota_${this.getDeviceId()}`;
@@ -55,17 +55,22 @@ const chatbotBrain = {
         return {
             u: filter(window.urbanSpots),
             n: filter(window.natureSpots),
-            v: filter(window.vlogSpots)
+            a: filter(window.alienSpots),  // Đồng bộ với Tab Aliens
+            h: filter(window.hauntedSpots) // Đồng bộ với Tab Haunted
         };
     },
 
     /**
-     * Core Processing: AI Analysis & Score Detection
+     * Core Processing: AI Analysis & Score Detection (SYNCED WITH 5-MIN WINDOW)
      */
     async processInput(input, currentCoords = null, hasImage = false, tempImgData = null) {
         try {
             const activeImage = tempImgData || window.currentImage || null;
             let imageHash = null;
+
+            // --- MENTOR FIX: TRÍCH XUẤT TIMESTAMP ĐỂ KHỚP 100% VỚI BACKEND ---
+            const opusIdMatch = input ? input.match(/OPUS_VERIFIED_(\d+)/) : null;
+            const extractedTimestamp = opusIdMatch ? opusIdMatch[1] : Date.now();
 
             if (activeImage) {
                 imageHash = await this.getImageHash(activeImage);
@@ -74,7 +79,9 @@ const chatbotBrain = {
                 if (cachedResult) {
                     const memory = JSON.parse(cachedResult);
                     console.log("Opus Brain: Memory Match. Consistent score retrieved.");
-                    if (memory.score >= 6 && window.injectUploadAction) {
+                    
+                    const isFresh = (Date.now() - memory.timestamp) < 300000;
+                    if (memory.score >= 6 && isFresh && window.injectUploadAction) {
                         window.injectUploadAction(activeImage, memory.category || "Urban");
                     }
                     return memory.reply;
@@ -94,6 +101,8 @@ const chatbotBrain = {
                     userLocation: currentCoords, 
                     attachedImage: activeImage, 
                     deviceId: this.getDeviceId(),
+                    // TRUYỀN TIMESTAMP ĐỂ SERVER ĐỐI CHIẾU 5 PHÚT
+                    clientTimestamp: extractedTimestamp, 
                     isLensMode: !!hasImage,
                     activeCategory: document.getElementById('header-text')?.innerText || "OPUS GLOBAL"
                 }),
@@ -111,22 +120,22 @@ const chatbotBrain = {
             const data = await response.json();
             const aiReply = data.reply || "I am processing your vision, Boss.";
 
-            const isNature = aiReply.toUpperCase().includes("NATURE") || aiReply.toLowerCase().includes("thiên nhiên");
-            const detectedCategory = isNature ? "Nature" : "Urban";
-
-            const scoreMatch = aiReply.match(/(\d+(\.\d+)?)\/10/);
-            const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
+            // ĐỒNG BỘ 100% VỚI CHAT.JS BACKEND
+            const score = data.score || 0;
+            const detectedCategory = data.category || "Urban";
+            const canUpload = data.canUpload || false; 
 
             if (imageHash) {
                 localStorage.setItem(`opus_vision_${imageHash}`, JSON.stringify({
                     reply: aiReply,
                     score: score,
                     category: detectedCategory,
-                    timestamp: Date.now()
+                    timestamp: Date.now() 
                 }));
             }
 
-            if ((score >= 6 || aiReply.toUpperCase().includes("MASTERPIECE")) && window.injectUploadAction && activeImage) {
+            // CHỈ HIỆN NÚT "GO GLOBAL" KHI SERVER XÁC NHẬN CAN UPLOAD (DƯỚI 5 PHÚT + SCORE >= 6)
+            if (canUpload && window.injectUploadAction && activeImage) {
                 window.injectUploadAction(activeImage, detectedCategory);
             }
 
@@ -140,7 +149,7 @@ const chatbotBrain = {
     },
 
     /**
-     * SECURE UPLOAD: FIRESTORE BASE64 INJECTION WITH ARTIST LINKS
+     * SECURE UPLOAD: FINAL GATEWAY (100% SYNCED WITH FIRESTORE & ARTIST LINKS)
      */
     async secureUpload(imageData, metadata) {
         if (!this.checkUploadQuota()) return false;
@@ -161,10 +170,21 @@ const chatbotBrain = {
         try {
             const imageHash = await this.getImageHash(imageData);
             const cachedData = JSON.parse(localStorage.getItem(`opus_vision_${imageHash}`));
-            const aiScore = cachedData ? cachedData.score : 0;
             
-            // Logic: Lấy category do AI quyết định
-            const finalCategory = (cachedData && cachedData.category) ? cachedData.category : "Urban";
+            if (!cachedData) {
+                alert("Opus Security: AI Verification missing. Please re-analyze.");
+                return false;
+            }
+
+            // LỚP PHÒNG THỦ CUỐI: Kiểm tra độ tươi ngay lúc bấm nút Upload cuối cùng
+            const isFreshNow = (Date.now() - cachedData.timestamp) < 300000;
+            if (!isFreshNow) {
+                alert("Opus Security: 5-minute window expired during writing. Upload denied, Boss.");
+                return false;
+            }
+
+            const aiScore = cachedData.score;
+            const finalCategory = cachedData.category || "Urban";
 
             const newPin = {
                 name: metadata.title,
@@ -178,13 +198,13 @@ const chatbotBrain = {
                 category: finalCategory,
                 score: aiScore,
                 id: 'opus_' + Date.now(),
-                // ĐỒNG BỘ 100% VỚI UI: Lưu Artist Social Links
+                // ĐỒNG BỘ 100% VỚI UI: Artist Social Links sếp yêu cầu
                 artistLinks: metadata.artistLinks || { ig: "None", yt: "None", fb: "None", li: "None" }
             };
 
             if (typeof firebase !== 'undefined' && firebase.firestore) {
                 await firebase.firestore().collection("global_masterpieces").add(newPin);
-                console.log(`Opus 2027: Masterpiece injected into ${finalCategory} collection with Artist Profile.`);
+                console.log(`Opus 2027: Masterpiece injected into ${finalCategory} with Artist Profile.`);
             }
 
             const quotaKey = `opus_quota_${this.getDeviceId()}`;
@@ -201,7 +221,7 @@ const chatbotBrain = {
     }
 };
 
-console.log("Opus 2027: Global Brain Sync Completed (Firestore & Artist Links).");
+console.log("Opus 2027: Global Brain Sync Completed (Firestore & 5-Min Window).");
 
 // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA - 100% UNTOUCHED) ---
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -211,5 +231,5 @@ document.onkeydown = e => {
         (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
     ) return false;
 };
-document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO') e.preventDefault(); });
+document.addEventListener('dragstart', e => { if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); });
 document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });

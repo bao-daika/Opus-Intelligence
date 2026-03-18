@@ -1,6 +1,6 @@
 // --- OPUS GLOBAL SYNC: MASTERPIECE INJECTION (2027) ---
 // Role: Chốt chặn cuối cùng để đưa hình Member lên Map toàn cầu.
-// Logic: 1 Member = 1 Doc (Ghi đè dựa trên UID), Phân loại màu Đốm bằng AI.
+// Logic: 1 Member = 1 Doc (Ghi đè dựa trên UID), Khớp 100% với index.html & detail.html
 
 import admin from 'firebase-admin';
 
@@ -28,53 +28,61 @@ export default async function handler(req, res) {
             lat, lng, score, category, artistLinks 
         } = req.body;
 
-      // --- [MENTOR UPDATE 2027]: LOWER BAR TO ATTRACT USERS ---
-if (score < 6) {
-    return res.status(403).json({ error: "Opus Error: Score below 6/10 cannot go Global yet." });
-}
+        // --- [MENTOR UPDATE 2027]: LOWER BAR TO ATTRACT USERS ---
+        if (score < 6) {
+            return res.status(403).json({ error: "Opus Error: Score below 6/10 cannot go Global yet." });
+        }
 
-        const cleanTitle = title.split(' ').slice(0, 5).join(' '); // Giới hạn 5 từ như sếp lệnh
+        // Giới hạn 5 từ như sếp lệnh cho tiêu đề
+        const cleanTitle = title.split(' ').slice(0, 5).join(' '); 
         
-        // 2. PHÂN LOẠI MÀU ĐỐM (LOGIC 2027)
-        // Urban = Tím (Purple), Nature = Xanh dương (Blue)
-        const dotColor = category.toLowerCase().includes('urban') ? '#A855F7' : '#3B82F6';
+        // --- LOGIC PHÂN LOẠI MÀU ĐỐM (KHỚP 100% INDEX.HTML) ---
+        // index.html dùng: spot.category === "Urban" ? 'marker-user-purple' : 'marker-user-blue'
+        // Nhưng để chắc chắn Aliens & Haunted hiển thị đúng (không phân biệt user/admin), 
+        // ta giữ nguyên Category gốc từ AI.
+        let finalCategory = category; 
+        
+        // Đảm bảo category khớp với các file Nature.js, Urban.js, Aliens.js, Haunted.js
+        const validCategories = ["Urban", "Nature", "Aliens", "Haunted"];
+        if (!validCategories.includes(finalCategory)) {
+            finalCategory = "Urban"; // Default nếu AI phân tích sai lệch
+        }
 
-        // 3. MASTERPIECE DATA STRUCTURE
+        // --- MASTERPIECE DATA STRUCTURE ---
         const masterpieceData = {
-            id: `opus_member_${uid}`,
+            id: uid, // Dùng UID làm ID đồng nhất
             uid: uid,
             author: displayName || "Elite Member",
             email: email,
             authorImg: photoURL,
             name: cleanTitle,
-            Description: description,
+            Description: description, // Viết hoa chữ D để khớp với detail.html
             camera: hardware,
             lat: parseFloat(lat),
             lng: parseFloat(lng),
-            images: [imageData], // Base64 injection
+            images: [imageData], // Array chứa Base64 để Carousel trong detail.html đọc được
             score: parseFloat(score),
-            category: category, // AI đã phân tích từ chatbot_brain
-            dotColor: dotColor,
+            category: finalCategory, 
+            // KHÓA CHÍNH: verified phải là "USER" để index.html vẽ đốm Tím/Blue nhỏ
+            verified: (finalCategory === "Aliens" || finalCategory === "Haunted") ? "ADMIN" : "USER", 
             artistInfo: {
                 instagram: artistLinks?.ig || "None",
                 youtube: artistLinks?.yt || "None",
                 facebook: artistLinks?.fb || "None",
                 linkedin: artistLinks?.li || "None"
             },
-            verified: "MEMBER_MASTERPIECE",
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        // 4. EXECUTE: 1 MEMBER = 1 DOC (Ghi đè tuyệt đối)
-        // Dùng UID làm Document ID để tự động thay thế hình cũ
+        // --- EXECUTE: 1 MEMBER = 1 DOC (Ghi đè tuyệt đối) ---
         await db.collection("global_masterpieces").doc(uid).set(masterpieceData);
 
-        console.log(`Opus Sync: Masterpiece by ${email} injected to Global Map.`);
+        console.log(`Opus Sync: Masterpiece by ${email} injected to Global Map as ${finalCategory}.`);
         
         return res.status(200).json({ 
             success: true, 
             message: "Boss, your Masterpiece is now Global!",
-            dot: dotColor 
+            category: finalCategory
         });
 
     } catch (error) {
