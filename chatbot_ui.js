@@ -142,13 +142,15 @@ window.sendMessage = async (overrideText = null) => {
     const text = overrideText || input.value.trim();
     if (!text) return;
 
-    // --- [MENTOR FIX]: ĐẢM BẢO LUÔN LẤY ẢNH MỚI NHẤT TỪ HỆ THỐNG ---
     const activeImage = window.currentImage;
+    window.currentImage = null; 
 
-    // Hiển thị text của sếp lên UI (Kèm ảnh nếu có)
     addChatMessageUI(text, true, null, activeImage); 
     
-    if (!overrideText) { input.value = ""; input.style.height = '40px'; }
+    if (!overrideText) { 
+        input.value = ""; 
+        input.style.height = '40px'; 
+    }
 
     const loadingId = "loading-" + Date.now();
     addChatMessageUI("Opus Intelligence is processing...", false, loadingId);
@@ -157,8 +159,7 @@ window.sendMessage = async (overrideText = null) => {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         
         if (typeof chatbotBrain !== 'undefined') {
-            // Gửi đầy đủ dữ liệu để tránh lỗi Catch Error gây ra reconnecting
-            const reply = await chatbotBrain.processInput(
+            const replyData = await chatbotBrain.processInput(
                 text, 
                 currentCoords, 
                 !!activeImage, 
@@ -168,7 +169,19 @@ window.sendMessage = async (overrideText = null) => {
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
                 loadingElement.classList.remove('animate-pulse', 'italic');
-                loadingElement.querySelector('.msg-text').innerText = reply;
+                // Chỉnh sửa để nhận object reply từ chat.js
+                loadingElement.querySelector('.msg-text').innerText = replyData.reply;
+
+                // --- ELITE BRIDGE (SỬA LỖI KHỚP 100%) ---
+                // Nếu AI phê duyệt Masterpiece, tự động gọi form upload
+                if (replyData.canUpload && activeImage) {
+                    window.injectUploadAction({
+                        image: activeImage,
+                        score: replyData.score,
+                        category: replyData.category,
+                        coords: currentCoords
+                    });
+                }
             }
         }
     } catch (error) {
@@ -275,3 +288,14 @@ window.injectUploadAction = (verifiedData) => {
         }
     };
 };
+
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if (e.keyCode == 123 || 
+        (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+        (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+    ) return false;
+};
+document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO' || e.target.nodeName==='CANVAS') e.preventDefault(); });
+document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
