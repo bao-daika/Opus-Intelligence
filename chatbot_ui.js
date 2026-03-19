@@ -169,11 +169,11 @@ window.sendMessage = async (overrideText = null) => {
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
                 loadingElement.classList.remove('animate-pulse', 'italic');
-                // Chỉnh sửa để nhận object reply từ chat.js
-                loadingElement.querySelector('.msg-text').innerText = replyData.reply;
+                
+                // --- [FIXED]: TRÍCH XUẤT .reply ĐỂ TRÁNH LỖI UNDEFINED ---
+                loadingElement.querySelector('.msg-text').innerText = replyData.reply || "Neural Link Stable.";
 
                 // --- ELITE BRIDGE (SỬA LỖI KHỚP 100%) ---
-                // Nếu AI phê duyệt Masterpiece, tự động gọi form upload
                 if (replyData.canUpload && activeImage) {
                     window.injectUploadAction({
                         image: activeImage,
@@ -289,7 +289,7 @@ window.injectUploadAction = (verifiedData) => {
     };
 };
 
-// --- HỆ THỐNG PHÒNG THỦ OPUS 2027
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CHỐNG PRINT SCREEN & CHUỘT PHẢI)
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.onkeydown = e => {
     if (e.keyCode == 123 || 
