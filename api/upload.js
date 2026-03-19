@@ -1,10 +1,10 @@
 // --- OPUS GLOBAL SYNC: MASTERPIECE INJECTION (2027) ---
-// Role: Chốt chặn cuối cùng để đưa hình Member lên Map toàn cầu.
-// Logic: 1 Member = 1 Doc (Ghi đè dựa trên UID), Khớp 100% với index.html & detail.html
+// Role: Chốt chặn cuối cùng + Double-Check AI Safety (Anti-Porn/Violence/Trash)
+// Logic: 1 Member = 1 Doc, Khớp 100% UI, Bảo mật tuyệt đối.
 
 import admin from 'firebase-admin';
 
-// Khởi tạo Admin SDK (Chỉ khởi tạo 1 lần)
+// Khởi tạo Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -23,47 +23,71 @@ export default async function handler(req, res) {
 
     try {
         const { 
-            uid, email, displayName, photoURL, // Từ Google Auth
+            uid, email, displayName, photoURL, 
             imageData, title, description, hardware, 
             lat, lng, score, category, artistLinks 
         } = req.body;
 
-        // --- [MENTOR UPDATE 2027]: LOWER BAR TO ATTRACT USERS ---
+        // --- 1. KIỂM TRA ĐIỂM SỐ CƠ BẢN ---
         if (score < 6) {
             return res.status(403).json({ error: "Opus Error: Score below 6/10 cannot go Global yet." });
         }
 
-        // Giới hạn 5 từ như sếp lệnh cho tiêu đề
-        const cleanTitle = title.split(' ').slice(0, 5).join(' '); 
-        
-        // --- LOGIC PHÂN LOẠI MÀU ĐỐM (KHỚP 100% INDEX.HTML) ---
-        // index.html dùng: spot.category === "Urban" ? 'marker-user-purple' : 'marker-user-blue'
-        // Nhưng để chắc chắn Aliens & Haunted hiển thị đúng (không phân biệt user/admin), 
-        // ta giữ nguyên Category gốc từ AI.
-        let finalCategory = category; 
-        
-        // Đảm bảo category khớp với các file Nature.js, Urban.js, Aliens.js, Haunted.js
-        const validCategories = ["Urban", "Nature", "Aliens", "Haunted"];
-        if (!validCategories.includes(finalCategory)) {
-            finalCategory = "Urban"; // Default nếu AI phân tích sai lệch
+        // --- 2. [MENTOR SECURITY UPGRADE]: DOUBLE-CHECK AI SAFETY ---
+        // Gọi lại Gemini Vision để quét nội dung ảnh một lần cuối trên Server
+        const apiKey = process.env.GEMINI_API_KEY;
+        const safetyUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        const safetyCheck = await fetch(safetyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: "DO NOT TALK. JUST RESPOND 'SAFE' OR 'VIOLATION'. Analyze this image for: Nudity, Pornography, Blood, Gore, Corpses, Human Waste, Trash, or Filth. If any detected, respond 'VIOLATION'." },
+                        { inline_data: { mime_type: "image/jpeg", data: imageData.split(',')[1] } }
+                    ]
+                }],
+                safetySettings: [
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE" }
+                ]
+            })
+        });
+
+        const safetyData = await safetyCheck.json();
+        const aiDecision = safetyData.candidates?.[0]?.content?.parts?.[0]?.text || "VIOLATION";
+
+        if (aiDecision.includes("VIOLATION") || safetyData.promptFeedback?.blockReason) {
+            console.warn(`SECURITY ALERT: User ${email} attempted to upload prohibited content.`);
+            return res.status(400).json({ error: "Opus Security: Image contains prohibited or low-vibe content." });
         }
 
-        // --- MASTERPIECE DATA STRUCTURE ---
+        // --- 3. GIỮ NGUYÊN LOGIC CŨ 100% ---
+        const cleanTitle = title.split(' ').slice(0, 5).join(' '); 
+        
+        let finalCategory = category; 
+        const validCategories = ["Urban", "Nature", "Aliens", "Haunted"];
+        if (!validCategories.includes(finalCategory)) {
+            finalCategory = "Urban";
+        }
+
         const masterpieceData = {
-            id: uid, // Dùng UID làm ID đồng nhất
+            id: uid,
             uid: uid,
             author: displayName || "Elite Member",
             email: email,
             authorImg: photoURL,
             name: cleanTitle,
-            Description: description, // Viết hoa chữ D để khớp với detail.html
+            Description: description, 
             camera: hardware,
             lat: parseFloat(lat),
             lng: parseFloat(lng),
-            images: [imageData], // Array chứa Base64 để Carousel trong detail.html đọc được
+            images: [imageData], 
             score: parseFloat(score),
             category: finalCategory, 
-            // KHÓA CHÍNH: verified phải là "USER" để index.html vẽ đốm Tím/Blue nhỏ
             verified: (finalCategory === "Aliens" || finalCategory === "Haunted") ? "ADMIN" : "USER", 
             artistInfo: {
                 instagram: artistLinks?.ig || "None",
@@ -74,10 +98,10 @@ export default async function handler(req, res) {
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        // --- EXECUTE: 1 MEMBER = 1 DOC (Ghi đè tuyệt đối) ---
+        // --- 4. EXECUTE GHI ĐÈ ---
         await db.collection("global_masterpieces").doc(uid).set(masterpieceData);
 
-        console.log(`Opus Sync: Masterpiece by ${email} injected to Global Map as ${finalCategory}.`);
+        console.log(`Opus Sync: Masterpiece by ${email} injected to Global Map.`);
         
         return res.status(200).json({ 
             success: true, 

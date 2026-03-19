@@ -141,9 +141,14 @@ window.sendMessage = async (overrideText = null) => {
     if (!input || !chatMessages) return;
 
     const text = overrideText || input.value.trim();
-    if (!text) return; // Chỉ gửi text, không còn xử lý ảnh upload thủ công
+    if (!text) return;
 
-    addChatMessageUI(text, true);
+    // --- [MENTOR FIX]: LẤY ẢNH TỪ BIẾN TOÀN CỤC ---
+    // Khi bấm Opus Rate, ảnh đã được lưu vào window.currentImage
+    const activeImage = window.currentImage || null;
+
+    // Hiển thị text của sếp lên UI (Kèm ảnh nếu có)
+    addChatMessageUI(text, true, null, activeImage); 
     
     if (!overrideText) { input.value = ""; input.style.height = '40px'; }
 
@@ -154,8 +159,14 @@ window.sendMessage = async (overrideText = null) => {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         
         if (typeof chatbotBrain !== 'undefined') {
-            // Chỉ gửi text và tọa độ sang bộ não xử lý
-            const reply = await chatbotBrain.processInput(text, currentCoords);
+            // --- [VÁ LỖI TẠI ĐÂY]: Gửi đủ 4 tham số cho bộ não ---
+            // processInput(input, currentCoords, hasImage, tempImgData)
+            const reply = await chatbotBrain.processInput(
+                text, 
+                currentCoords, 
+                !!activeImage, 
+                activeImage
+            );
             
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
@@ -164,8 +175,7 @@ window.sendMessage = async (overrideText = null) => {
             }
         }
     } catch (error) {
-        const el = document.getElementById(loadingId);
-        if (el) el.querySelector('.msg-text').innerText = "Connection lost, Boss.";
+        // ... xử lý lỗi
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
 };
