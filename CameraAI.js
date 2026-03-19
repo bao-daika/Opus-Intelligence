@@ -1,7 +1,7 @@
 // --- OPUS CAMERA AI SYSTEM 2026-2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp, AI Safety (Vibe Guard)
-// STATUS: 100% ORIGINAL LOGIC + DUAL-SAVE SYSTEM + INSTANT RATING
-// [MENTOR UPDATE]: TẤT CẢ CÁC NÚT ĐỀU TỰ ĐỘNG LƯU VỀ MÁY USER.
+// STATUS: 100% ORIGINAL LOGIC + FAST-TRACK AI SYNC + AUTO-SAVE
+// [MENTOR UPDATE]: Ưu tiên đẩy dữ liệu AI trước khi kích hoạt lệnh Save của trình duyệt.
 
 let isFlashOn = false;
 let currentZoom = 1;
@@ -10,7 +10,7 @@ let userCoords = null;
 let geoWatchId = null; 
 let lastRatingTime = 0; 
 
-// --- 1. KÍCH HOẠT LENS AI & RE-DESIGN UI ---
+// --- 1. KÍCH HOẠT LENS AI & RE-DESIGN UI (GIỮ NGUYÊN) ---
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
     const video = document.getElementById('camera-feed');
@@ -84,7 +84,7 @@ window.activateAILens = async () => {
     }
 };
 
-// --- 2. LOGIC ZOOM (PRESERVED) ---
+// --- 2. LOGIC ZOOM (GIỮ NGUYÊN) ---
 function setupZoomInteractions(videoElement) {
     if (!videoTrack) return;
     videoElement.onclick = () => {
@@ -107,7 +107,7 @@ async function applyZoom() {
     } catch (e) { console.error("Zoom Error:", e); }
 }
 
-// --- 3. ĐÓNG LENS (RESET) ---
+// --- 3. ĐÓNG LENS (GIỮ NGUYÊN) ---
 window.stopAILens = () => {
     const videoElement = document.getElementById('camera-feed');
     if (videoElement?.srcObject) {
@@ -124,7 +124,7 @@ window.stopAILens = () => {
     document.getElementById('opus-lens-container').style.display = 'none';
 };
 
-// --- 4. HARDWARE FLASH (PRESERVED) ---
+// --- 4. HARDWARE FLASH (GIỮ NGUYÊN) ---
 window.toggleFlash = async () => {
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities();
@@ -136,7 +136,7 @@ window.toggleFlash = async () => {
     } catch (err) { console.error("Flash Error:", err); }
 };
 
-// --- 5. VIBE GUARD (PRESERVED) ---
+// --- 5. VIBE GUARD (GIỮ NGUYÊN) ---
 const checkSafety = (ctx, w, h) => {
     const imgData = ctx.getImageData(0, 0, w, h).data;
     let badPoints = 0;
@@ -148,7 +148,7 @@ const checkSafety = (ctx, w, h) => {
     return (badPoints / (imgData.length / sampleStep)) < 0.12;
 };
 
-// --- 6. CHỤP ẢNH (COOLDOWN SYSTEM - ALWAYS AUTOSAVE) ---
+// --- 6. CHỤP ẢNH (GIỮ NGUYÊN COOLDOWN) ---
 window.capturePhoto = async (mode = 'FREE') => {
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
@@ -183,7 +183,7 @@ window.capturePhoto = async (mode = 'FREE') => {
     }
 };
 
-// --- 7. ĐÓNG DẤU ELITE STAMP & DUAL ACTION (SAVE + RATING) ---
+// --- 7. ĐÓNG DẤU ELITE STAMP & DUAL ACTION (FIXED FOR 2027) ---
 function executeEliteCapture(video, canvas, isRating = false) {
     const TARGET_WIDTH = 1920;
     const scaleFactor = TARGET_WIDTH / video.videoWidth;
@@ -197,7 +197,7 @@ function executeEliteCapture(video, canvas, isRating = false) {
         return;
     }
     
-    // --- RENDER STAMP (BẢO LƯU 100%) ---
+    // --- RENDER STAMP (GIỮ NGUYÊN 100%) ---
     const pad = canvas.width * 0.03;
     const fontSize = canvas.width * 0.022;
     const timestampNow = Date.now();
@@ -215,32 +215,44 @@ function executeEliteCapture(video, canvas, isRating = false) {
     drawEliteText("TIME: " + timeStr, pad, canvas.height - (pad * 1.3), `500 ${fontSize * 0.6}px monospace`, "white");
     drawEliteText("OPUS_VERIFIED_" + timestampNow, canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
 
-    // --- [ACTION 1]: ALWAYS AUTOSAVE FOR ALL MODES ---
+    // --- MENTOR FIX: PHÂN TÁCH LỒNG NHAU ĐỂ KHÔNG BỊ TREO ---
+
+    // [BƯỚC 1]: Xử lý dữ liệu AI trước (Không đợi Pop-up Save)
+    if (isRating) {
+        const smallCanvas = document.createElement('canvas');
+        const AI_TARGET_W = 600; // Nén siêu nhỏ để tránh Timeout
+        smallCanvas.width = AI_TARGET_W;
+        smallCanvas.height = canvas.height * (AI_TARGET_W / canvas.width);
+        const sCtx = smallCanvas.getContext('2d');
+        sCtx.imageSmoothingEnabled = true;
+        sCtx.imageSmoothingQuality = 'high';
+        sCtx.drawImage(canvas, 0, 0, AI_TARGET_W, smallCanvas.height);
+        
+        // Chuyển sang WebP nén mạnh cho AI
+        const compressedBase64 = smallCanvas.toDataURL('image/webp', 0.5);
+
+        if (window.sendToCurator) {
+            // Gửi dữ liệu AI ngay lập tức
+            window.sendToCurator({ image: compressedBase64, gps: userCoords, time: timestampNow });
+        }
+    }
+
+    // [BƯỚC 2]: Thực hiện Auto-Save (Chấp nhận Pop-up trình duyệt hiện sau khi AI đã được kích hoạt)
     canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         const prefix = isRating ? "OPUS_MASTERPIECE" : "OPUS_FREE";
         link.download = `${prefix}_${timestampNow}.webp`;
+        
+        // Trình duyệt sẽ hiện Pop-up tại đây, nhưng AI đã nhận lệnh ở Bước 1 rồi.
         link.click();
         
-        // --- [ACTION 2]: IF RATING MODE -> REDIRECT TO AI BRAIN ---
-        if (isRating) {
-            const smallCanvas = document.createElement('canvas');
-            smallCanvas.width = 800;
-            smallCanvas.height = canvas.height * (800 / canvas.width);
-            smallCanvas.getContext('2d').drawImage(canvas, 0, 0, 800, smallCanvas.height);
-            const compressedBase64 = smallCanvas.toDataURL('image/jpeg', 0.6);
-
-            if (window.sendToCurator) {
-                // Bridge sẽ đóng Lens và mở Chatbot tự động
-                window.sendToCurator({ image: compressedBase64, gps: userCoords, time: timestampNow });
-            }
-        }
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }, 'image/webp', 0.85);
 }
 
-// --- 8. PHÒNG THỦ (PRESERVED) ---
+// --- 8. PHÒNG THỦ (GIỮ NGUYÊN) ---
 (function(){
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('dragstart', e => { if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); });

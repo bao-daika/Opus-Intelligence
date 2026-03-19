@@ -170,7 +170,7 @@ window.sendMessage = async (overrideText = null) => {
             if (loadingElement) {
                 loadingElement.classList.remove('animate-pulse', 'italic');
                 
-                // --- SMART DECODE: SỬA LỖI UNDEFINED & DỰ PHÒNG ---
+                // --- FIX 100% SYNC: SMART DECODE ---
                 let finalText = "Neural link failed to decode.";
                 if (typeof replyData === 'string') {
                     finalText = replyData;
@@ -180,13 +180,15 @@ window.sendMessage = async (overrideText = null) => {
                 
                 loadingElement.querySelector('.msg-text').innerText = finalText;
 
-                // --- ELITE BRIDGE ---
-                if (replyData && replyData.canUpload && activeImage) {
+                // Lưu ý: Logic injectUploadAction đã được gọi bên trong Brain để tránh Double Call.
+                // Nếu Brain không gọi, UI sẽ check dự phòng ở đây.
+                if (replyData && replyData.canUpload && activeImage && !document.getElementById('masterpiece-form-container')) {
                     window.injectUploadAction({
                         image: activeImage,
                         score: replyData.score || 0,
                         category: replyData.category || "Urban",
-                        coords: currentCoords
+                        lat: currentCoords?.lat || 0,
+                        lng: currentCoords?.lng || 0
                     });
                 }
             }
@@ -217,6 +219,9 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
 }
 
 window.injectUploadAction = (verifiedData) => {
+    // Ngăn chặn tạo nhiều Form cùng lúc
+    if (document.getElementById('masterpiece-form-container')) return;
+
     addChatMessageUI("OPUS RATE VERIFIED: Masterpiece detected! Ready to go global?", false);
     
     const chatMessages = document.getElementById('chat-messages');
@@ -305,3 +310,23 @@ document.onkeydown = e => {
 };
 document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO' || e.target.nodeName==='CANVAS') e.preventDefault(); });
 document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
+
+// --- OPUS BRIDGE: CONNECTING CAMERA TO CHATBOT ---
+window.sendToCurator = async (data) => {
+    // 1. Ghim ảnh vào hệ thống Chat
+    window.currentImage = data.image; 
+
+    // 2. Mở cửa sổ Chat với hiệu ứng 2027
+    const chatWin = document.getElementById('chat-window');
+    if (chatWin) {
+        chatWin.style.display = 'flex';
+        chatWin.classList.add('animate-fade-in');
+    }
+
+    // 3. Tự động gửi lệnh phân tích
+    const analysisMsg = `[Opus Rate System]: Analyzing capture at LOC: ${data.gps || "SIGNAL ENCRYPTED"}. Requesting Elite Rating...`;
+    
+    if (window.sendMessage) {
+        await window.sendMessage(analysisMsg);
+    }
+};

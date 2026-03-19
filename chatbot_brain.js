@@ -212,20 +212,35 @@ const chatbotBrain = {
 /**
  * [INSTANT BRIDGE 2027]: KẾT NỐI CAMERA -> CHATBOT
  */
+// --- OPUS BRIDGE: CAMERA AI TO CHATBOT BRAIN SYNC (2027) ---
 window.sendToCurator = async (data) => {
-    window.currentImage = data.image; // Lưu vào biến toàn cục cho Chatbot UI lấy
-    if (window.stopAILens) window.stopAILens();
+    window.currentImage = data.image; 
 
+    // Mở Chat UI
     const chatWin = document.getElementById('chat-window');
-    if (chatWin) chatWin.style.display = 'flex';
+    if (chatWin) {
+        chatWin.style.display = 'flex';
+        chatWin.classList.add('animate-fade-in');
+    }
+
+    setTimeout(() => { if (window.stopAILens) window.stopAILens(); }, 600);
+
+    // --- MENTOR FIX: CHUẨN HÓA TỌA ĐỘ TRƯỚC KHI GỬI VÀO BRAIN ---
+    let coordsObj = null;
+    if (data.gps && data.gps !== "SIGNAL ENCRYPTED") {
+        const parts = data.gps.split(',');
+        coordsObj = { 
+            lat: parseFloat(parts[0]), 
+            lng: parseFloat(parts[1]) 
+        };
+    }
 
     const verifyId = `OPUS_VERIFIED_${data.time}`;
-    const analysisMsg = `[Opus Rate System]: Analyzing ${verifyId} captured at ${data.gps || "Unknown Coordinates"}.`;
+    const analysisMsg = `[Opus Rate System]: Analyzing ${verifyId}...`;
     
     if (window.sendMessage) {
-        await window.sendMessage(analysisMsg);
-        const msgBox = document.getElementById('chat-messages');
-        if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+        // Gửi tin nhắn kèm theo Object tọa độ đã được chuẩn hóa
+        await window.sendMessage(analysisMsg, coordsObj); 
     }
 };
 
