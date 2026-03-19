@@ -80,7 +80,7 @@
     document.head.appendChild(style);
 })();
 
-// --- [MENTOR FIX]: KHỞI TẠO BIẾN TOÀN CỤC ĐỂ NHẬN ẢNH TỪ CAMERA ---
+// --- KHỞI TẠO BIẾN TOÀN CỤC ---
 window.currentImage = window.currentImage || null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -170,15 +170,22 @@ window.sendMessage = async (overrideText = null) => {
             if (loadingElement) {
                 loadingElement.classList.remove('animate-pulse', 'italic');
                 
-                // --- [FIXED]: TRÍCH XUẤT .reply ĐỂ TRÁNH LỖI UNDEFINED ---
-                loadingElement.querySelector('.msg-text').innerText = replyData.reply || "Neural Link Stable.";
+                // --- SMART DECODE: SỬA LỖI UNDEFINED & DỰ PHÒNG ---
+                let finalText = "Neural link failed to decode.";
+                if (typeof replyData === 'string') {
+                    finalText = replyData;
+                } else if (replyData && replyData.reply) {
+                    finalText = replyData.reply;
+                }
+                
+                loadingElement.querySelector('.msg-text').innerText = finalText;
 
-                // --- ELITE BRIDGE (SỬA LỖI KHỚP 100%) ---
-                if (replyData.canUpload && activeImage) {
+                // --- ELITE BRIDGE ---
+                if (replyData && replyData.canUpload && activeImage) {
                     window.injectUploadAction({
                         image: activeImage,
-                        score: replyData.score,
-                        category: replyData.category,
+                        score: replyData.score || 0,
+                        category: replyData.category || "Urban",
                         coords: currentCoords
                     });
                 }
@@ -209,7 +216,6 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     msgBox.scrollTop = msgBox.scrollHeight;
 }
 
-// --- MASTERPIECE FORM: KÍCH HOẠT KHI CÓ DATA TỪ OPUS RATE ---
 window.injectUploadAction = (verifiedData) => {
     addChatMessageUI("OPUS RATE VERIFIED: Masterpiece detected! Ready to go global?", false);
     
@@ -289,7 +295,7 @@ window.injectUploadAction = (verifiedData) => {
     };
 };
 
-// --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CHỐNG PRINT SCREEN & CHUỘT PHẢI)
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.onkeydown = e => {
     if (e.keyCode == 123 || 
