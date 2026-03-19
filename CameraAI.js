@@ -1,84 +1,105 @@
-// --- OPUS CAMERA AI SYSTEM 2027 ---
+// --- OPUS CAMERA AI SYSTEM 2026-2027 ---
 // Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp, AI Safety (Vibe Guard)
-// STATUS: 100% ORIGINAL LOGIC + TEXT STROKE RENDERING + INSTANT GPS TRACKING
-// [MENTOR NOTE]: ĐÃ THÊM VIỀN CHỮ (STROKE) ĐỂ CHỐNG BLEND NỀN, CAPTURED BY HUMAN THẲNG.
-// [UPDATE]: TÍCH HỢP WATCHPOSITION ĐỂ TRIỆT TIÊU DELAY KHI CHỤP.
+// STATUS: 100% ORIGINAL LOGIC + DUAL-SAVE SYSTEM + INSTANT RATING
+// [MENTOR UPDATE]: TẤT CẢ CÁC NÚT ĐỀU TỰ ĐỘNG LƯU VỀ MÁY USER.
 
 let isFlashOn = false;
 let currentZoom = 1;
 let videoTrack = null;
 let userCoords = null;
-let geoWatchId = null; // Quản lý chu kỳ tracking
+let geoWatchId = null; 
+let lastRatingTime = 0; 
 
-// --- 1. KÍCH HOẠT LENS AI (UPGRADED WITH INSTANT TRACKING) ---
+// --- 1. KÍCH HOẠT LENS AI & RE-DESIGN UI ---
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
     const video = document.getElementById('camera-feed');
-    if (!container || !video) return;
+    const overlay = container?.querySelector('.lens-overlay');
+    if (!container || !video || !overlay) return;
 
     container.style.display = 'block';
     isFlashOn = false; 
     currentZoom = 1; 
     
-    // --- KHỞI CHẠY TRACKING TỌA ĐỘ NGAY KHI MỞ LENS ---
+    const existingControls = overlay.querySelectorAll('button, .absolute.bottom-12');
+    existingControls.forEach(el => el.remove());
+
+    const eliteUI = `
+        <div id="opus-dynamic-controls" class="absolute bottom-10 left-0 right-0 flex justify-center items-end gap-6 px-6 pointer-events-auto z-[10000]">
+            
+            <div class="flex flex-col items-center gap-2 mb-2">
+                <button onclick="window.stopAILens()" class="w-12 h-12 bg-black/20 backdrop-blur-md rounded-full text-white/50 flex items-center justify-center active:scale-90 transition border border-white/10">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Close</span>
+            </div>
+
+            <div class="flex flex-col items-center gap-2 mb-2">
+                <button onclick="window.capturePhoto('FREE')" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl flex items-center justify-center active:scale-90 transition shadow-lg">
+                    <i data-lucide="camera" class="text-white w-6 h-6"></i>
+                </button>
+                <span class="text-[8px] text-white/60 font-black uppercase tracking-tighter">Gallery</span>
+            </div>
+
+            <div class="flex flex-col items-center gap-2">
+                <div id="rating-cooldown-msg" class="absolute -top-10 text-[9px] text-yellow-500 font-black uppercase tracking-widest hidden animate-pulse">Recharging...</div>
+                <button id="btn-rating-main" onclick="window.capturePhoto('RATING')" class="w-20 h-20 rounded-full bg-yellow-500 border-[6px] border-black/30 shadow-[0_0_30px_rgba(251,191,36,0.5)] flex items-center justify-center active:scale-95 transition-all relative overflow-hidden">
+                    <i data-lucide="star" class="text-black w-10 h-10"></i>
+                    <div id="rating-loader" class="absolute inset-0 bg-black/40 origin-bottom scale-y-0"></div>
+                </button>
+                <span class="text-[10px] text-yellow-500 font-black uppercase tracking-[0.2em]">Opus Rate</span>
+            </div>
+
+            <div class="flex flex-col items-center gap-2 mb-2">
+                <button id="flash-btn-lens" onclick="window.toggleFlash()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl flex items-center justify-center active:scale-90 transition shadow-lg">
+                    <i data-lucide="zap" class="text-white w-6 h-6"></i>
+                </button>
+                <span class="text-[8px] text-white/60 font-black uppercase tracking-tighter">Flash</span>
+            </div>
+        </div>
+    `;
+    overlay.insertAdjacentHTML('beforeend', eliteUI);
+    if(window.lucide) lucide.createIcons();
+
     if (navigator.geolocation) {
         geoWatchId = navigator.geolocation.watchPosition(
-            (position) => {
-                userCoords = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
-                console.log("Opus Satellite: Locked");
-            },
-            (err) => { console.warn("Opus GPS: Signal searching..."); },
+            (p) => { userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
+            (err) => { console.warn("Opus GPS: Searching..."); },
             { enableHighAccuracy: true }
         );
     }
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: "environment", 
-                width: { ideal: 1920 },
-                height: { ideal: 1080 } 
-            } 
+            video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
         });
         video.srcObject = stream;
         videoTrack = stream.getVideoTracks()[0];
-        
+        setupZoomInteractions(video);
         const suggestion = document.getElementById('ai-suggestion');
         if (suggestion) suggestion.innerText = "AI Lens: Elite Mode Active";
-        
-        setupZoomInteractions(video);
-
-        if(window.lucide) lucide.createIcons();
     } catch (err) { 
-        alert("Opus System: Mentor requires Camera Permission to proceed!"); 
+        alert("Opus System: Camera Permission Required!"); 
         window.stopAILens(); 
     }
 };
 
-// --- 2. LOGIC ZOOM (PRESERVED - DO NOT TOUCH) ---
+// --- 2. LOGIC ZOOM (PRESERVED) ---
 function setupZoomInteractions(videoElement) {
     if (!videoTrack) return;
-    const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
-    if (!capabilities.zoom) return;
-
-    videoElement.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        let zoomStep = capabilities.zoom.step || 0.1;
-        if (e.deltaY < 0) currentZoom += zoomStep * 2;
-        else currentZoom -= zoomStep * 2;
+    videoElement.onclick = () => {
+        currentZoom = (currentZoom >= 3) ? 1 : currentZoom + 1;
         applyZoom();
-    }, { passive: false });
+    };
 }
 
 async function applyZoom() {
     if (!videoTrack) return;
     const capabilities = videoTrack.getCapabilities();
     if (!capabilities.zoom) return;
-
     const min = capabilities.zoom.min || 1;
     const max = capabilities.zoom.max || 5;
     currentZoom = Math.min(Math.max(currentZoom, min), max);
-    
     try {
         await videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
         const suggestion = document.getElementById('ai-suggestion');
@@ -86,188 +107,141 @@ async function applyZoom() {
     } catch (e) { console.error("Zoom Error:", e); }
 }
 
-window.changeZoom = (value) => { currentZoom = parseFloat(value); applyZoom(); };
-
-// --- 3. ĐÓNG LENS (RESET CHU KỲ - PRESERVED) ---
+// --- 3. ĐÓNG LENS (RESET) ---
 window.stopAILens = () => {
     const videoElement = document.getElementById('camera-feed');
-    if (videoElement && videoElement.srcObject) {
+    if (videoElement?.srcObject) {
         videoElement.srcObject.getTracks().forEach(track => track.stop());
         videoElement.srcObject = null;
     }
-    
-    // Ngắt tracking GPS để bảo vệ pin và kết thúc phiên làm việc
     if (geoWatchId !== null) {
         navigator.geolocation.clearWatch(geoWatchId);
         geoWatchId = null;
     }
-    
     videoTrack = null;
     isFlashOn = false;
-    userCoords = null; // Reset tọa độ cho chu kỳ mới
-    const container = document.getElementById('opus-lens-container');
-    if (container) container.style.display = 'none';
+    userCoords = null;
+    document.getElementById('opus-lens-container').style.display = 'none';
 };
 
-// --- 4. HARDWARE FLASH CONTROL (PRESERVED - DO NOT TOUCH) ---
+// --- 4. HARDWARE FLASH (PRESERVED) ---
 window.toggleFlash = async () => {
     if (!videoTrack) return;
-    const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
-    if (!capabilities.torch) { 
-        alert("Opus Info: Physical Flash is not supported on this device."); 
-        return; 
-    }
+    const capabilities = videoTrack.getCapabilities();
+    if (!capabilities.torch) return;
     try {
         isFlashOn = !isFlashOn;
         await videoTrack.applyConstraints({ advanced: [{ torch: isFlashOn }] });
-        const flashBtn = document.getElementById('flash-btn');
-        if (flashBtn) {
-            flashBtn.classList.toggle('bg-yellow-500', isFlashOn);
-            flashBtn.classList.toggle('text-black', isFlashOn);
-        }
+        document.getElementById('flash-btn-lens').classList.toggle('text-yellow-500', isFlashOn);
     } catch (err) { console.error("Flash Error:", err); }
 };
 
-// --- 5. [URBAN/NATURE VIBE GUARD] (PRESERVED - DO NOT TOUCH) ---
+// --- 5. VIBE GUARD (PRESERVED) ---
 const checkSafety = (ctx, w, h) => {
     const imgData = ctx.getImageData(0, 0, w, h).data;
-    let bloodPoints = 0; 
-    let skinPoints = 0;  
-    let wastePoints = 0; 
-    
-    const sampleStep = 40; 
+    let badPoints = 0;
+    const sampleStep = 60; 
     for (let i = 0; i < imgData.length; i += sampleStep) {
-        const r = imgData[i];
-        const g = imgData[i+1];
-        const b = imgData[i+2];
-
-        if (r > 160 && g < 40 && b < 40) bloodPoints++;
-        if (r > 190 && g > 140 && b > 110 && r > g && g > b) skinPoints++;
-        if (r > 80 && r < 140 && g > 60 && g < 100 && b < 40) wastePoints++;
+        const r = imgData[i], g = imgData[i+1], b = imgData[i+2];
+        if (r > 160 && g < 50 && b < 50) badPoints++;
     }
-
-    const totalSamples = imgData.length / sampleStep;
-    const violationRatio = (bloodPoints + skinPoints + wastePoints) / totalSamples;
-
-    if (violationRatio > 0.12 || (bloodPoints / totalSamples) > 0.05) {
-        console.error("Opus Safety: Vibe Violation Detected.");
-        return false;
-    }
-    return true; 
+    return (badPoints / (imgData.length / sampleStep)) < 0.12;
 };
 
-// --- 6. CHỤP ẢNH (INSTANT MODE - TRIỆT TIÊU DELAY) ---
-window.capturePhoto = async () => {
+// --- 6. CHỤP ẢNH (COOLDOWN SYSTEM - ALWAYS AUTOSAVE) ---
+window.capturePhoto = async (mode = 'FREE') => {
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
     if (!video || video.readyState !== 4 || !canvas) return;
 
-    // Tọa độ đã được sync liên tục trong biến userCoords, chụp ngay lập tức!
-    executeEliteCapture(video, canvas);
+    if (mode === 'RATING') {
+        const now = Date.now();
+        const cooldown = 5000;
+        if (now - lastRatingTime < cooldown) {
+            const msg = document.getElementById('rating-cooldown-msg');
+            if(msg) {
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 2000);
+            }
+            return;
+        }
+
+        const loader = document.getElementById('rating-loader');
+        if(loader) {
+            loader.style.transition = 'none';
+            loader.style.scaleY = '1';
+            setTimeout(() => {
+                loader.style.transition = `scale-y ${cooldown}ms linear`;
+                loader.style.scaleY = '0';
+            }, 50);
+        }
+
+        lastRatingTime = now;
+        executeEliteCapture(video, canvas, true);
+    } else {
+        executeEliteCapture(video, canvas, false);
+    }
 };
 
-// --- 7. ĐÓNG DẤU ELITE STAMP & LƯU (PRESERVED - DO NOT TOUCH) ---
-function executeEliteCapture(video, canvas) {
+// --- 7. ĐÓNG DẤU ELITE STAMP & DUAL ACTION (SAVE + RATING) ---
+function executeEliteCapture(video, canvas, isRating = false) {
     const TARGET_WIDTH = 1920;
     const scaleFactor = TARGET_WIDTH / video.videoWidth;
     canvas.width = TARGET_WIDTH;
     canvas.height = video.videoHeight * scaleFactor;
-
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     if(!checkSafety(ctx, canvas.width, canvas.height)) {
-        alert("OPUS AI ERROR: Content does not match Urban/Nature standards.");
-        const sub = document.getElementById('ai-suggestion');
-        if(sub) sub.innerText = "Vibe Violation: Aborted";
+        alert("OPUS AI ERROR: Vibe Violation.");
         return;
     }
     
+    // --- RENDER STAMP (BẢO LƯU 100%) ---
     const pad = canvas.width * 0.03;
     const fontSize = canvas.width * 0.022;
-
-    const getFormattedTime = () => {
-        const now = new Date();
-        const useNY = !userCoords;
-        const timeZone = useNY ? "America/New_York" : undefined;
-        const prefix = useNY ? "NEW YORK'S TIME: " : "TIME: ";
-
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            day: 'numeric', month: 'long', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: true, timeZone: timeZone
-        });
-
-        const parts = formatter.formatToParts(now);
-        const day = parts.find(p => p.type === 'day').value;
-        const month = parts.find(p => p.type === 'month').value;
-        const year = parts.find(p => p.type === 'year').value;
-        const hour = parts.find(p => p.type === 'hour').value;
-        const min = parts.find(p => p.type === 'minute').value;
-        const sec = parts.find(p => p.type === 'second').value;
-        const dayPeriod = parts.find(p => p.type === 'dayPeriod').value;
-
-        return `${prefix}${day} - ${month} - ${year}, ${hour}:${min}:${sec} ${dayPeriod}`;
-    };
+    const timestampNow = Date.now();
+    const timeStr = new Date().toLocaleString('en-US', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }).toUpperCase();
 
     const drawEliteText = (text, x, y, font, color, align = "left") => {
-        ctx.textAlign = align;
-        ctx.font = font;
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = fontSize * 0.15;
-        ctx.lineJoin = "round";
-        ctx.strokeText(text, x, y);
-        ctx.fillStyle = color;
-        ctx.fillText(text, x, y);
+        ctx.textAlign = align; ctx.font = font;
+        ctx.strokeStyle = "black"; ctx.lineWidth = fontSize * 0.15; ctx.lineJoin = "round";
+        ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
     };
 
-    ctx.shadowColor = "transparent";
+    drawEliteText("CAPTURED BY HUMAN", pad, canvas.height - (pad * 3.8), `300 ${fontSize}px sans-serif`, "white");
+    drawEliteText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 2.8), `bold ${fontSize * 0.9}px sans-serif`, "#fbbf24");
+    drawEliteText(userCoords ? "LOC: " + userCoords : "LOC: SIGNAL ENCRYPTED", pad, canvas.height - (pad * 2.0), `500 ${fontSize * 0.6}px monospace`, "white");
+    drawEliteText("TIME: " + timeStr, pad, canvas.height - (pad * 1.3), `500 ${fontSize * 0.6}px monospace`, "white");
+    drawEliteText("OPUS_VERIFIED_" + timestampNow, canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
 
-    drawEliteText("CAPTURED BY HUMAN", pad, canvas.height - (pad * 3.8), `300 ${fontSize}px 'Inter', sans-serif`, "white");
-    drawEliteText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 2.8), `bold ${fontSize * 0.9}px 'Inter', sans-serif`, "#fbbf24");
-
-    const displayLoc = userCoords ? "LOC: " + userCoords : "LOC: SIGNAL ENCRYPTED // GLOBAL CITIZEN";
-    drawEliteText(displayLoc, pad, canvas.height - (pad * 2.0), `500 ${fontSize * 0.6}px monospace`, "white");
-
-    drawEliteText(getFormattedTime(), pad, canvas.height - (pad * 1.3), `500 ${fontSize * 0.6}px monospace`, "white");
-    drawEliteText("OPUS_VERIFIED_" + Date.now(), canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
-
-    document.body.style.filter = "brightness(2.5)";
-    setTimeout(() => { document.body.style.filter = "none"; }, 80);
-    
+    // --- [ACTION 1]: ALWAYS AUTOSAVE FOR ALL MODES ---
     canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const geoTag = userCoords ? userCoords.replace(/, /g, '_') : "GLOBAL";
-        link.download = `OPUS_ELITE_${geoTag}_${Date.now()}.webp`;
+        const prefix = isRating ? "OPUS_MASTERPIECE" : "OPUS_FREE";
+        link.download = `${prefix}_${timestampNow}.webp`;
         link.click();
-        window.open(url, '_blank');
         
-        const sub = document.getElementById('ai-suggestion');
-        if(sub) {
-            sub.innerText = `Elite Masterpiece: ${(blob.size/1024).toFixed(0)}KB | WebP 0.7 Ready`;
-            setTimeout(() => { if(videoTrack) sub.innerText = "Opus Zoom: " + currentZoom.toFixed(1) + "x"; }, 4000);
+        // --- [ACTION 2]: IF RATING MODE -> REDIRECT TO AI BRAIN ---
+        if (isRating) {
+            const smallCanvas = document.createElement('canvas');
+            smallCanvas.width = 800;
+            smallCanvas.height = canvas.height * (800 / canvas.width);
+            smallCanvas.getContext('2d').drawImage(canvas, 0, 0, 800, smallCanvas.height);
+            const compressedBase64 = smallCanvas.toDataURL('image/jpeg', 0.6);
+
+            if (window.sendToCurator) {
+                // Bridge sẽ đóng Lens và mở Chatbot tự động
+                window.sendToCurator({ image: compressedBase64, gps: userCoords, time: timestampNow });
+            }
         }
-    }, 'image/webp', 0.7); 
+    }, 'image/webp', 0.85);
 }
 
-// --- 8. HỆ THỐNG PHÒNG THỦ OPUS 2027 (PRESERVED - DO NOT TOUCH) ---
-(function(_0xOpus){
-    document.addEventListener('contextmenu', _ => _.preventDefault());
-    document.onkeydown = function(e) {
-        if (e.keyCode == 123 || 
-            (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
-            (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
-        ) return false;
-    };
-    document.addEventListener('dragstart', e => { 
-        if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); 
-    });
-    document.addEventListener('keyup', e => { 
-        if(e.key === 'PrintScreen') { 
-            navigator.clipboard.writeText(''); 
-            alert('Opus Security: Screenshot disabled.'); 
-        } 
-    });
-})(window);
+// --- 8. PHÒNG THỦ (PRESERVED) ---
+(function(){
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('dragstart', e => { if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); });
+})();

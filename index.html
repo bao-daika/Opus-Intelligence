@@ -10,7 +10,6 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="theme-color" content="#000000">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Opus-Map | Luxury Photography Store 2027</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,6 +47,7 @@
         .grid-line-h { position: absolute; left: 0; width: 100%; height: 1px; background: rgba(251, 191, 36, 0.3); }
         .grid-line-v { position: absolute; top: 0; width: 1px; height: 100%; background: rgba(251, 191, 36, 0.3); }
         
+        /* Zoom UI nay được CameraAI.js quản lý hoàn toàn */
         .zoom-selector-container { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
         .btn-zoom { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid rgba(251, 191, 36, 0.2); color: white; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: all 0.2s; }
         .btn-zoom.active { border-color: var(--gold); color: var(--gold); background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
@@ -61,86 +61,17 @@
         .popup-media-container { width: 100%; height: 130px; position: relative; overflow: hidden; border-radius: 20px 20px 0 0; }
         .popup-media-container video, .popup-media-container img { width: 100%; height: 100%; object-fit: cover; }
 
-       /* --- LENS CORE: ĐỒNG TÂM TUYỆT ĐỐI --- */
-#ai-core { 
-    position: absolute; 
-    bottom: 30px; 
-    right: 20px; 
-    z-index: 6000; 
-    width: 70px; 
-    height: 70px; 
-    border-radius: 50%; 
-    background: #111; 
-    
-    /* Ép vào giữa bằng Grid */
-    display: grid;
-    place-items: center; 
-    
-    cursor: pointer; 
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); 
-    border: 2px solid rgba(251, 191, 36, 0.2); 
-    
-    /* Chống lệch do môi trường */
-    padding: 0 !important;
-    margin: 0 !important;
-    box-sizing: border-box;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-#ai-core:hover {
-    box-shadow: 0 0 40px rgba(251, 191, 36, 0.6);
-    border-color: var(--gold);
-    transform: scale(1.1) rotate(5deg);
-}
-
-.lens-inner { 
-    width: 45px; 
-    height: 45px; 
-    border-radius: 50%; 
-    background: radial-gradient(circle, #222 0%, #000 80%); 
-    border: 1px solid var(--gold); 
-    
-    /* Grid lồng Grid để icon Aperture không thể đi đâu khác ngoài tâm */
-    display: grid;
-    place-items: center;
-    position: relative;
-    animation: lensZoom 3s infinite ease-in-out; 
-    padding: 0 !important;
-}
-
-/* Khử hoàn toàn lỗi lệch do font-size của Icon */
-.lens-inner i {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    line-height: 0;
-    margin: 0 !important;
-}
-
-.lens-glass-reflection { 
-    position: absolute; 
-    top: 20%; 
-    left: 20%; 
-    width: 15px; 
-    height: 8px; 
-    background: rgba(255,255,255,0.1); 
-    border-radius: 50%; 
-    transform: rotate(-45deg); 
-    pointer-events: none;
-}
-
+        #ai-core { position: absolute; bottom: 30px; right: 20px; z-index: 6000; width: 70px; height: 70px; border-radius: 50%; background: #111; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); border: 2px solid rgba(251, 191, 36, 0.2); padding: 0 !important; margin: 0 !important; box-sizing: border-box; overflow: hidden; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #ai-core:hover { box-shadow: 0 0 40px rgba(251, 191, 36, 0.6); border-color: var(--gold); transform: scale(1.1) rotate(5deg); }
+        .lens-inner { width: 45px; height: 45px; border-radius: 50%; background: radial-gradient(circle, #222 0%, #000 80%); border: 1px solid var(--gold); display: grid; place-items: center; position: relative; animation: lensZoom 3s infinite ease-in-out; padding: 0 !important; }
+        .lens-inner i { display: flex !important; align-items: center; justify-content: center; width: 20px; height: 20px; line-height: 0; margin: 0 !important; }
+        .lens-glass-reflection { position: absolute; top: 20%; left: 20%; width: 15px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 50%; transform: rotate(-45deg); pointer-events: none; }
         @keyframes lensZoom { 0%, 100% { transform: scale(1); box-shadow: inset 0 0 5px var(--gold); } 50% { transform: scale(1.15); box-shadow: inset 0 0 20px var(--gold); } }
         
-        /* Markers Styles 2027 */
         .marker-glow { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 15px var(--gold); animation: opus-pulse 2s infinite ease-in-out; }
         .marker-nature-glow { width: 12px; height: 12px; background: var(--green-nature); border-radius: 50%; box-shadow: 0 0 15px var(--green-nature); animation: opus-pulse 2s infinite ease-in-out; }
         .marker-user-purple { width: 10px; height: 10px; background: var(--purple-user); border-radius: 50%; box-shadow: 0 0 10px var(--purple-user); }
         .marker-user-blue { width: 10px; height: 10px; background: var(--blue-user); border-radius: 50%; box-shadow: 0 0 10px var(--blue-user); }
-        
-        /* Aliens & Haunted Styles */
         .marker-alien-glow { width: 13px; height: 13px; background: var(--alien-cyan); border-radius: 50%; box-shadow: 0 0 20px var(--alien-cyan); animation: alien-rotate 1.5s infinite linear; border: 2.8px solid rgb(242, 137, 9); }
         .marker-haunted-glow { width: 13px; height: 13px; background: var(--haunted-white); border-radius: 50%; box-shadow: 0 0 20px var(--haunted-white); animation: haunted-fade 3s infinite ease-in-out; border: 1px solid rgba(255,255,255,0.3); }
         
@@ -169,19 +100,7 @@
                 <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 title-breath">Opus Elite Lens</p>
                 <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning Landscape...</p>
             </div>
-            <div class="zoom-selector-container">
-                <button onclick="window.changeZoom(1, this)" class="btn-zoom active">1X</button>
-                <button onclick="window.changeZoom(2, this)" class="btn-zoom">2X</button>
-                <button onclick="window.changeZoom(5, this)" class="btn-zoom">5X</button>
             </div>
-            <div class="absolute bottom-12 left-0 right-0 flex justify-around items-center px-6 pointer-events-auto">
-                <button onclick="window.stopAILens()" class="p-4 glass rounded-full text-white active:scale-90 transition"><i data-lucide="x"></i></button>
-                <div onclick="window.capturePhoto()" id="capture-btn" class="w-20 h-20 rounded-full border-4 border-yellow-500 flex items-center justify-center bg-white/10 active:scale-95 transition cursor-pointer">
-                    <div class="w-16 h-16 rounded-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]"></div>
-                </div>
-                <button onclick="window.toggleFlash()" class="p-4 glass rounded-full text-yellow-500 active:scale-90 transition"><i data-lucide="zap"></i></button>
-            </div>
-        </div>
         <canvas id="capture-canvas" class="hidden"></canvas>
     </div>
 
@@ -226,16 +145,29 @@
             <div class="flex justify-between items-start mb-4">
                 <div class="flex flex-col">
                     <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Gallery Curator</span>
-                    <div id="bot-instruction" class="mt-2 space-y-1.5 border-b border-white/5 pb-3">
-                        <div class="flex gap-2">
-                            <span class="text-yellow-500 text-[8px]">●</span>
-                            <p class="text-[9px] uppercase tracking-tighter leading-tight text-white">Capture via <b class="text-yellow-500">Elite Lens</b> with instant Geotag.</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="text-yellow-500 text-[8px]">●</span>
-                            <p class="text-[9px] uppercase tracking-tighter leading-tight text-white/60">Requirement: <b class="text-yellow-500">Score 6/10+</b> to go global.</p>
-                        </div>
-                    </div>
+                    <div id="bot-instruction" class="mt-2 space-y-4 border-b border-white/5 pb-5">
+    
+    <div class="flex flex-col gap-1">
+        <p class="text-[10px] font-black text-white uppercase tracking-widest">
+            Step 1: Tap <span class="text-yellow-500">LENS</span> to start
+        </p>
+        <p class="text-[9px] text-white/50 leading-relaxed tracking-tight">
+            • <b class="text-white/80">Gallery:</b> Unlimited shots with Verified Stamps. <br>
+            • <b class="text-yellow-500/80 text-[8px]">Opus Rate:</b> 1 shot, 1 review & rating by Curator.
+        </p>
+    </div>
+
+    <div class="flex flex-col gap-1">
+        <p class="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+            Step 2: Go Global (6/10+)
+        </p>
+        <p class="text-[9px] text-white/50 leading-relaxed tracking-tight">
+            • Score <b class="text-white">6/10+</b> grants the <b class="text-white">RIGHT</b> to upload to Opus Map. <br>
+            • 1 Spot per User. New upload <b class="text-cyan-400">replaces</b> your previous one.
+        </p>
+    </div>
+
+</div>
                 </div>
                 <button id="close-chat-btn" class="mt-1 text-white/30 hover:text-white transition"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
@@ -251,22 +183,22 @@
 
         <div id="map"></div>
 
-        <div id="ai-core">
-    <div class="lens-inner">
-        <div class="lens-glass-reflection"></div>
-        <i data-lucide="aperture" class="text-yellow-500"></i> 
-    </div>
-</div>
+        <div id="ai-core" onclick="window.activateAILens()">
+            <div class="lens-inner">
+                <div class="lens-glass-reflection"></div>
+                <i data-lucide="aperture" class="text-yellow-500"></i> 
+            </div>
+        </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="Urban.js"></script>
-    <script src="Nature.js"></script>
-    <script src="Aliens.js"></script>
-    <script src="Haunted.js"></script>
-    <script src="chatbot_brain.js"></script>
-    <script src="CameraAI.js"></script>
-    <script src="chatbot_ui.js"></script>
+<script src="config.js"></script>
+<script src="Urban.js"></script>
+<script src="Nature.js"></script>
+<script src="Aliens.js"></script>
+<script src="Haunted.js"></script>
+<script src="chatbot_brain.js"></script> 
+<script src="chatbot_ui.js"></script>
+<script src="CameraAI.js"></script>
 
     <script>
         // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (CẤM XÓA) ---
@@ -363,29 +295,12 @@
             markerClusterGroup.clearLayers();
             const filtered = getAllSpots().filter(s => s.category === activeCategoryObject.dataKey);
             const newMarkers = filtered.map(spot => {
-                let iconHtml = `<div class="marker-glow"></div>`; // Default Urban (Vàng)
-                
-                // --- PHÂN TẦNG MÀU SẮC OPUS 2027 ---
-                
-                // 1. Aliens: Cả Admin và User đều là Cyan rực rỡ
-                if (spot.category === "Aliens") {
-                    iconHtml = `<div class="marker-alien-glow"></div>`;
-                } 
-                // 2. Haunted: Cả Admin và User đều là Xám (Haunted White)
-                else if (spot.category === "Haunted") {
-                    iconHtml = `<div class="marker-haunted-glow"></div>`;
-                } 
-                // 3. Phân biệt Urban và Nature (Admin vs User)
+                let iconHtml = `<div class="marker-glow"></div>`;
+                if (spot.category === "Aliens") iconHtml = `<div class="marker-alien-glow"></div>`;
+                else if (spot.category === "Haunted") iconHtml = `<div class="marker-haunted-glow"></div>`;
                 else {
-                    if (spot.category === "Nature") {
-                        // Nature Admin (từ Nature.js) -> Lime Green
-                        iconHtml = (spot.verified !== "USER") ? `<div class="marker-nature-glow"></div>` : `<div class="marker-user-blue"></div>`;
-                    } 
-                    else if (spot.category === "Urban") {
-                        // Urban Admin (từ Urban.js) -> Gold (mặc định)
-                        // Urban User (từ Global) -> Purple
-                        if (spot.verified === "USER") iconHtml = `<div class="marker-user-purple"></div>`;
-                    }
+                    if (spot.category === "Nature") iconHtml = (spot.verified !== "USER") ? `<div class="marker-nature-glow"></div>` : `<div class="marker-user-blue"></div>`;
+                    else if (spot.category === "Urban") if (spot.verified === "USER") iconHtml = `<div class="marker-user-purple"></div>`;
                 }
 
                 const icon = L.divIcon({className:"custom-marker", html: iconHtml, iconSize:[14,14]});

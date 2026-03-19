@@ -80,7 +80,7 @@
     document.head.appendChild(style);
 })();
 
-window.currentImage = null;
+// Xóa window.currentImage vì không còn upload ảnh thủ công
 
 document.addEventListener('DOMContentLoaded', () => {
     const oldInput = document.getElementById('ai-input');
@@ -99,40 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChatBtn = document.getElementById('close-chat-btn');
     const lensBtn = document.getElementById('lens-btn');
     
-    const inputWrapper = input ? input.parentElement : null;
-    if (inputWrapper && !document.getElementById('chat-upload-btn')) {
-        const uploadTrigger = document.createElement('button');
-        uploadTrigger.id = "chat-upload-btn";
-        uploadTrigger.className = "p-2 text-white/50 hover:text-yellow-500 transition-all flex-shrink-0";
-        uploadTrigger.innerHTML = `<i data-lucide="image-plus" class="w-5 h-5"></i>`;
-        inputWrapper.insertBefore(uploadTrigger, input);
-        
-        const fileInput = document.createElement('input');
-        fileInput.id = "hidden-file-input";
-        fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-
-        uploadTrigger.onclick = () => {
-            if (firebase.auth().currentUser) {
-                fileInput.click();
-            } else {
-                addChatMessageUI("Enter Opus to upload your images", false);
-                if(typeof toggleMenu === 'function') setTimeout(toggleMenu, 1200);
-            }
-        };
-
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    window.currentImage = event.target.result;
-                    showImagePreview(event.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-    }
+    // --- LOGIC UPLOAD ẢNH THỦ CÔNG ĐÃ BỊ LOẠI BỎ THEO LỆNH SẾP ---
 
     if (input) {
         input.addEventListener('input', function() {
@@ -161,42 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 });
 
-window.updateUploadButtonVisibility = () => {
-    const btn = document.getElementById('chat-upload-btn');
-    if (!btn) return;
-    if (firebase.auth().currentUser) {
-        btn.classList.remove('locked-btn');
-    } else {
-        btn.classList.add('locked-btn');
-    }
-};
-
-function showImagePreview(src) {
-    let previewBox = document.getElementById('image-preview-container');
-    const inputArea = document.querySelector('#chat-window > div:last-child');
-    if (!previewBox && inputArea) {
-        previewBox = document.createElement('div');
-        previewBox.id = 'image-preview-container';
-        previewBox.className = "flex p-3 gap-2 bg-white/5 border-t border-white/10 flex-shrink-0";
-        inputArea.parentNode.insertBefore(previewBox, inputArea);
-    }
-    previewBox.innerHTML = `
-        <div class="relative w-16 h-16 rounded-lg border border-yellow-500/50 overflow-hidden shadow-xl">
-            <img src="${src}" class="w-full h-full object-cover">
-            <button onclick="clearPreview()" class="absolute top-0 right-0 bg-black/70 text-white p-1 rounded-bl-lg"><i data-lucide="x" class="w-3 h-3"></i></button>
-        </div>
-    `;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-window.clearPreview = () => {
-    window.currentImage = null;
-    const previewBox = document.getElementById('image-preview-container');
-    if (previewBox) previewBox.remove();
-    const fInput = document.getElementById('hidden-file-input');
-    if (fInput) fInput.value = "";
-};
-
 window.toggleChat = () => {
     const win = document.getElementById('chat-window');
     if (!win) return;
@@ -210,23 +141,21 @@ window.sendMessage = async (overrideText = null) => {
     if (!input || !chatMessages) return;
 
     const text = overrideText || input.value.trim();
-    const tempImgData = window.currentImage; 
-    
-    if (!text && !tempImgData) return;
+    if (!text) return; // Chỉ gửi text, không còn xử lý ảnh upload thủ công
 
-    addChatMessageUI(text, true, null, tempImgData);
+    addChatMessageUI(text, true);
     
     if (!overrideText) { input.value = ""; input.style.height = '40px'; }
 
     const loadingId = "loading-" + Date.now();
-    addChatMessageUI("Gallery Curator is evaluating your work...", false, loadingId);
+    addChatMessageUI("Opus Intelligence is processing...", false, loadingId);
 
     try {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         
         if (typeof chatbotBrain !== 'undefined') {
-            const hasImage = tempImgData !== null;
-            const reply = await chatbotBrain.processInput(text, currentCoords, hasImage, tempImgData);
+            // Chỉ gửi text và tọa độ sang bộ não xử lý
+            const reply = await chatbotBrain.processInput(text, currentCoords);
             
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
@@ -234,7 +163,6 @@ window.sendMessage = async (overrideText = null) => {
                 loadingElement.querySelector('.msg-text').innerText = reply;
             }
         }
-        window.clearPreview();
     } catch (error) {
         const el = document.getElementById(loadingId);
         if (el) el.querySelector('.msg-text').innerText = "Connection lost, Boss.";
@@ -259,9 +187,10 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     msgBox.scrollTop = msgBox.scrollHeight;
 }
 
-// --- MASTERPIECE FORM: UPLOAD TO OPUS MAP (ELITE 2027) ---
-window.injectUploadAction = (tempImgData) => {
-    addChatMessageUI("MASTERPIECE DETECTED! Upload your masterpiece to Opus Map?", false);
+// --- MASTERPIECE FORM: KÍCH HOẠT KHI CÓ DATA TỪ OPUS RATE ---
+window.injectUploadAction = (verifiedData) => {
+    // verifiedData: { image, score, category, lat, lng } từ Opus Rate
+    addChatMessageUI("OPUS RATE VERIFIED: Masterpiece detected! Ready to go global?", false);
     
     const chatMessages = document.getElementById('chat-messages');
     const formWrapper = document.createElement('div');
@@ -269,6 +198,10 @@ window.injectUploadAction = (tempImgData) => {
     formWrapper.className = "flex flex-col gap-2 p-4 glass border border-yellow-500/30 rounded-2xl mt-2 w-[90%] self-start animate-fade-in";
     
     formWrapper.innerHTML = `
+        <div class="relative w-full h-32 mb-2 rounded-lg overflow-hidden border border-white/10">
+            <img src="${verifiedData.image}" class="w-full h-full object-cover">
+            <div class="absolute bottom-0 right-0 bg-yellow-500 text-black px-2 py-1 text-[9px] font-black">SCORE: ${verifiedData.score}</div>
+        </div>
         <input type="text" id="final-title" class="opus-form-input" placeholder="Title (Max 5 words)">
         <input type="text" id="final-hardware" class="opus-form-input" placeholder="Hardware (e.g. Sony A7R V)">
         <textarea id="final-desc" class="opus-form-input" placeholder="Description..." rows="2"></textarea>
@@ -294,15 +227,14 @@ window.injectUploadAction = (tempImgData) => {
     chatMessages.appendChild(formWrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Nút CLOSE
     document.getElementById('final-close-btn').onclick = () => {
         formWrapper.remove();
-        addChatMessageUI("Upload cancelled by Boss.", false);
+        addChatMessageUI("Neural link closed, Boss.", false);
     };
 
-    // Nút SEND
     document.getElementById('final-upload-btn').onclick = async () => {
         const metadata = {
+            ...verifiedData, // Inject dữ liệu từ Opus Rate
             title: document.getElementById('final-title').value.trim(),
             hardware: document.getElementById('final-hardware').value.trim(),
             desc: document.getElementById('final-desc').value.trim(),
@@ -323,7 +255,8 @@ window.injectUploadAction = (tempImgData) => {
         btn.disabled = true;
         btn.innerText = "Verifying...";
 
-        const success = await chatbotBrain.secureUpload(tempImgData, metadata);
+        // Gửi toàn bộ metadata đã gồm data từ Opus Rate lên Map
+        const success = await chatbotBrain.secureUpload(metadata);
         
         if (success) {
             formWrapper.innerHTML = "<p class='text-yellow-500 text-[10px] font-bold italic animate-pulse text-center'>Neural Link Complete. Pin added to Opus Map!</p>";
