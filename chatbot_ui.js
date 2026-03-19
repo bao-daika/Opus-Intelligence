@@ -80,7 +80,8 @@
     document.head.appendChild(style);
 })();
 
-// Xóa window.currentImage vì không còn upload ảnh thủ công
+// --- [MENTOR FIX]: KHỞI TẠO BIẾN TOÀN CỤC ĐỂ NHẬN ẢNH TỪ CAMERA ---
+window.currentImage = window.currentImage || null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const oldInput = document.getElementById('ai-input');
@@ -99,8 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChatBtn = document.getElementById('close-chat-btn');
     const lensBtn = document.getElementById('lens-btn');
     
-    // --- LOGIC UPLOAD ẢNH THỦ CÔNG ĐÃ BỊ LOẠI BỎ THEO LỆNH SẾP ---
-
     if (input) {
         input.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -143,9 +142,8 @@ window.sendMessage = async (overrideText = null) => {
     const text = overrideText || input.value.trim();
     if (!text) return;
 
-    // --- [MENTOR FIX]: LẤY ẢNH TỪ BIẾN TOÀN CỤC ---
-    // Khi bấm Opus Rate, ảnh đã được lưu vào window.currentImage
-    const activeImage = window.currentImage || null;
+    // --- [MENTOR FIX]: ĐẢM BẢO LUÔN LẤY ẢNH MỚI NHẤT TỪ HỆ THỐNG ---
+    const activeImage = window.currentImage;
 
     // Hiển thị text của sếp lên UI (Kèm ảnh nếu có)
     addChatMessageUI(text, true, null, activeImage); 
@@ -159,8 +157,7 @@ window.sendMessage = async (overrideText = null) => {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         
         if (typeof chatbotBrain !== 'undefined') {
-            // --- [VÁ LỖI TẠI ĐÂY]: Gửi đủ 4 tham số cho bộ não ---
-            // processInput(input, currentCoords, hasImage, tempImgData)
+            // Gửi đầy đủ dữ liệu để tránh lỗi Catch Error gây ra reconnecting
             const reply = await chatbotBrain.processInput(
                 text, 
                 currentCoords, 
@@ -175,7 +172,9 @@ window.sendMessage = async (overrideText = null) => {
             }
         }
     } catch (error) {
-        // ... xử lý lỗi
+        console.error("Opus UI Error:", error);
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.querySelector('.msg-text').innerText = "Neural Link Error. Try again, Boss!";
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
 };
@@ -199,7 +198,6 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
 
 // --- MASTERPIECE FORM: KÍCH HOẠT KHI CÓ DATA TỪ OPUS RATE ---
 window.injectUploadAction = (verifiedData) => {
-    // verifiedData: { image, score, category, lat, lng } từ Opus Rate
     addChatMessageUI("OPUS RATE VERIFIED: Masterpiece detected! Ready to go global?", false);
     
     const chatMessages = document.getElementById('chat-messages');
@@ -244,7 +242,7 @@ window.injectUploadAction = (verifiedData) => {
 
     document.getElementById('final-upload-btn').onclick = async () => {
         const metadata = {
-            ...verifiedData, // Inject dữ liệu từ Opus Rate
+            ...verifiedData,
             title: document.getElementById('final-title').value.trim(),
             hardware: document.getElementById('final-hardware').value.trim(),
             desc: document.getElementById('final-desc').value.trim(),
@@ -265,7 +263,6 @@ window.injectUploadAction = (verifiedData) => {
         btn.disabled = true;
         btn.innerText = "Verifying...";
 
-        // Gửi toàn bộ metadata đã gồm data từ Opus Rate lên Map
         const success = await chatbotBrain.secureUpload(metadata);
         
         if (success) {
