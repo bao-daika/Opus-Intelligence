@@ -87,22 +87,59 @@
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .hidden { display: none !important; }
         .no-select { pointer-events: none; }
+
+        /* Nâng cấp Live Preview: Ẩn video gốc, hiện Canvas biến hình */
+#camera-feed { 
+    width: 100%; height: 100%; object-fit: cover; 
+    opacity: 0; position: absolute; pointer-events: none; 
+}
+#capture-canvas-live { 
+    width: 100%; height: 100%; object-fit: cover; 
+    display: block; background: #000;
+}
+/* Style cho nút chọn bộ lọc Prisma */
+.filter-chip {
+    padding: 6px 16px; border-radius: 99px; font-size: 10px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;
+}
+.filter-chip.active {
+    background: var(--gold); color: black; border-color: var(--gold);
+    box-shadow: 0 0 15px var(--gold);
+}
     </style>
 </head>
 <body> 
 
     <div id="opus-lens-container">
-        <video id="camera-feed" autoplay playsinline></video>
-        <div class="lens-overlay">
-            <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
-            <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
-            <div class="absolute top-10 left-0 right-0 text-center">
-                <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 title-breath">Opus Elite Lens</p>
-                <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Scanning Landscape...</p>
-            </div>
-            </div>
-        <canvas id="capture-canvas" class="hidden"></canvas>
+    <video id="camera-feed" autoplay playsinline></video>
+    
+    <canvas id="capture-canvas-live"></canvas>
+    
+    <div style="display: none;">
+        <img id="asset-ghost" src="ghost.png" />
+        <img id="asset-cyber" src="cyber-marker.png" />
     </div>
+
+    <div class="lens-overlay">
+        <div class="grid-line-h" style="top: 33.33%"></div><div class="grid-line-h" style="top: 66.66%"></div>
+        <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
+        
+        <div class="absolute top-10 left-0 right-0 text-center">
+            <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 title-breath">Opus Elite Lens</p>
+            <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Neural Style Transfer Active</p>
+        </div>
+
+        <div class="absolute top-28 left-0 right-0 flex justify-center gap-2 pointer-events-auto">
+            <button onclick="window.setStyle('none')" class="filter-chip active">Raw</button>
+            <button onclick="window.setStyle('cyber')" class="filter-chip">Cyber</button>
+            <button onclick="window.setStyle('sketch')" class="filter-chip">Sketch</button>
+            <button onclick="window.setStyle('ghost')" class="filter-chip">Spirit</button>
+        </div>
+    </div>
+
+    <canvas id="capture-canvas" class="hidden"></canvas>
+</div>
 
     <div class="relative h-full w-full">
         <div class="header-wrapper">

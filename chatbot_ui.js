@@ -80,7 +80,8 @@
     document.head.appendChild(style);
 })();
 
-// Xóa window.currentImage vì không còn upload ảnh thủ công
+// --- KHỞI TẠO BIẾN TOÀN CỤC ---
+window.currentImage = window.currentImage || null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const oldInput = document.getElementById('ai-input');
@@ -99,8 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChatBtn = document.getElementById('close-chat-btn');
     const lensBtn = document.getElementById('lens-btn');
     
-    // --- LOGIC UPLOAD ẢNH THỦ CÔNG ĐÃ BỊ LOẠI BỎ THEO LỆNH SẾP ---
-
     if (input) {
         input.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -143,14 +142,15 @@ window.sendMessage = async (overrideText = null) => {
     const text = overrideText || input.value.trim();
     if (!text) return;
 
-    // --- [MENTOR FIX]: LẤY ẢNH TỪ BIẾN TOÀN CỤC ---
-    // Khi bấm Opus Rate, ảnh đã được lưu vào window.currentImage
-    const activeImage = window.currentImage || null;
+    const activeImage = window.currentImage;
+    window.currentImage = null; 
 
-    // Hiển thị text của sếp lên UI (Kèm ảnh nếu có)
     addChatMessageUI(text, true, null, activeImage); 
     
-    if (!overrideText) { input.value = ""; input.style.height = '40px'; }
+    if (!overrideText) { 
+        input.value = ""; 
+        input.style.height = '40px'; 
+    }
 
     const loadingId = "loading-" + Date.now();
     addChatMessageUI("Opus Intelligence is processing...", false, loadingId);
@@ -159,9 +159,7 @@ window.sendMessage = async (overrideText = null) => {
         const currentCoords = (typeof userMarker !== 'undefined' && userMarker !== null) ? userMarker.getLatLng() : null;
         
         if (typeof chatbotBrain !== 'undefined') {
-            // --- [VÁ LỖI TẠI ĐÂY]: Gửi đủ 4 tham số cho bộ não ---
-            // processInput(input, currentCoords, hasImage, tempImgData)
-            const reply = await chatbotBrain.processInput(
+            const replyData = await chatbotBrain.processInput(
                 text, 
                 currentCoords, 
                 !!activeImage, 
@@ -171,11 +169,34 @@ window.sendMessage = async (overrideText = null) => {
             const loadingElement = document.getElementById(loadingId);
             if (loadingElement) {
                 loadingElement.classList.remove('animate-pulse', 'italic');
-                loadingElement.querySelector('.msg-text').innerText = reply;
+                
+                // --- FIX 100% SYNC: SMART DECODE ---
+                let finalText = "Neural link failed to decode.";
+                if (typeof replyData === 'string') {
+                    finalText = replyData;
+                } else if (replyData && replyData.reply) {
+                    finalText = replyData.reply;
+                }
+                
+                loadingElement.querySelector('.msg-text').innerText = finalText;
+
+                // Lưu ý: Logic injectUploadAction đã được gọi bên trong Brain để tránh Double Call.
+                // Nếu Brain không gọi, UI sẽ check dự phòng ở đây.
+                if (replyData && replyData.canUpload && activeImage && !document.getElementById('masterpiece-form-container')) {
+                    window.injectUploadAction({
+                        image: activeImage,
+                        score: replyData.score || 0,
+                        category: replyData.category || "Urban",
+                        lat: currentCoords?.lat || 0,
+                        lng: currentCoords?.lng || 0
+                    });
+                }
             }
         }
     } catch (error) {
-        // ... xử lý lỗi
+        console.error("Opus UI Error:", error);
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.querySelector('.msg-text').innerText = "Neural Link Error. Try again, Boss!";
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
 };
@@ -197,9 +218,10 @@ function addChatMessageUI(text, isUser, id = null, imgData = null) {
     msgBox.scrollTop = msgBox.scrollHeight;
 }
 
-// --- MASTERPIECE FORM: KÍCH HOẠT KHI CÓ DATA TỪ OPUS RATE ---
 window.injectUploadAction = (verifiedData) => {
-    // verifiedData: { image, score, category, lat, lng } từ Opus Rate
+    // Ngăn chặn tạo nhiều Form cùng lúc
+    if (document.getElementById('masterpiece-form-container')) return;
+
     addChatMessageUI("OPUS RATE VERIFIED: Masterpiece detected! Ready to go global?", false);
     
     const chatMessages = document.getElementById('chat-messages');
@@ -244,7 +266,7 @@ window.injectUploadAction = (verifiedData) => {
 
     document.getElementById('final-upload-btn').onclick = async () => {
         const metadata = {
-            ...verifiedData, // Inject dữ liệu từ Opus Rate
+            ...verifiedData,
             title: document.getElementById('final-title').value.trim(),
             hardware: document.getElementById('final-hardware').value.trim(),
             desc: document.getElementById('final-desc').value.trim(),
@@ -265,7 +287,6 @@ window.injectUploadAction = (verifiedData) => {
         btn.disabled = true;
         btn.innerText = "Verifying...";
 
-        // Gửi toàn bộ metadata đã gồm data từ Opus Rate lên Map
         const success = await chatbotBrain.secureUpload(metadata);
         
         if (success) {
@@ -277,4 +298,35 @@ window.injectUploadAction = (verifiedData) => {
             alert("Opus Error: Secure Upload Failed.");
         }
     };
+};
+
+// --- HỆ THỐNG PHÒNG THỦ OPUS 2027
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if (e.keyCode == 123 || 
+        (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+        (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
+    ) return false;
+};
+document.addEventListener('dragstart', e => { if(e.target.nodeName==='IMG' || e.target.nodeName==='VIDEO' || e.target.nodeName==='CANVAS') e.preventDefault(); });
+document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
+
+// --- OPUS BRIDGE: CONNECTING CAMERA TO CHATBOT ---
+window.sendToCurator = async (data) => {
+    // 1. Ghim ảnh vào hệ thống Chat
+    window.currentImage = data.image; 
+
+    // 2. Mở cửa sổ Chat với hiệu ứng 2027
+    const chatWin = document.getElementById('chat-window');
+    if (chatWin) {
+        chatWin.style.display = 'flex';
+        chatWin.classList.add('animate-fade-in');
+    }
+
+    // 3. Tự động gửi lệnh phân tích
+    const analysisMsg = `[Opus Rate System]: Analyzing capture at LOC: ${data.gps || "SIGNAL ENCRYPTED"}. Requesting Elite Rating...`;
+    
+    if (window.sendMessage) {
+        await window.sendMessage(analysisMsg);
+    }
 };

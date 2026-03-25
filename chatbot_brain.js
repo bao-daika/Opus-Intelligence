@@ -41,6 +41,7 @@ const chatbotBrain = {
      */
     async getImageHash(base64Str) {
         if (!base64Str) return null;
+        // Lấy mẫu 5000 ký tự cuối để hash nhanh mà vẫn chính xác cho Base64
         const msgUint8 = new TextEncoder().encode(base64Str.substring(base64Str.length - 5000)); 
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -64,41 +65,19 @@ const chatbotBrain = {
 
     /**
      * Core Processing: AI Analysis & Score Detection (INSTANT FLOW)
-     * [MENTOR FIX]: Đồng nhất dữ liệu gửi sang UI Form.
+     * [MENTOR FIX]: Đã khai báo đầy đủ biến imageHash và timeoutId để tránh lỗi Logic.
      */
     async processInput(input, currentCoords = null, hasImage = false, tempImgData = null) {
         try {
+            // 1. Đồng bộ ảnh từ Camera hoặc Global State
             const activeImage = tempImgData || window.currentImage || null;
             let imageHash = null;
 
-            const opusIdMatch = input ? input.match(/OPUS_VERIFIED_(\d+)/) : null;
-            const extractedTimestamp = opusIdMatch ? opusIdMatch[1] : Date.now();
-
-            // 1. Kiểm tra Memory (Cache)
             if (activeImage) {
                 imageHash = await this.getImageHash(activeImage);
-                const cachedResult = localStorage.getItem(`opus_vision_${imageHash}`);
-                
-                if (cachedResult) {
-                    const memory = JSON.parse(cachedResult);
-                    console.log("Opus Brain: Memory Match. Consistent score retrieved.");
-                    
-                    // Nếu điểm cao, tự động mở Form Masterpiece từ bộ nhớ cũ
-                    if (memory.score >= 6 && window.injectUploadAction) {
-                        window.injectUploadAction({
-                            image: activeImage,
-                            score: memory.score,
-                            category: memory.category || "Urban",
-                            lat: currentCoords?.lat || 0,
-                            lng: currentCoords?.lng || 0
-                        });
-                    }
-                    return memory.reply;
-                }
             }
 
-            // 2. Gọi AI Satellite (API Chat)
-            const mapContext = this.getOptimizedContext();
+            // 2. Thiết lập Network Controller cho Satellite Link
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 25000); 
 
@@ -107,13 +86,11 @@ const chatbotBrain = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: input,
-                    allSpots: mapContext, 
+                    allSpots: this.getOptimizedContext(), 
                     userLocation: currentCoords, 
-                    attachedImage: activeImage, 
-                    deviceId: this.getDeviceId(),
-                    clientTimestamp: extractedTimestamp,
-                    isLensMode: !!hasImage,
-                    activeCategory: document.getElementById('header-text')?.innerText || "OPUS GLOBAL"
+                    attachedImage: activeImage, // SYNCED WITH SERVER
+                    isLensMode: !!activeImage,
+                    deviceId: this.getDeviceId()
                 }),
                 signal: controller.signal
             });
@@ -132,7 +109,7 @@ const chatbotBrain = {
             const detectedCategory = data.category || "Urban";
             const canUpload = data.canUpload || false; 
 
-            // 3. Lưu Memory & Kích hoạt UI Form
+            // 3. Lưu Memory & Kích hoạt UI Form (DNA Consistency)
             if (imageHash) {
                 localStorage.setItem(`opus_vision_${imageHash}`, JSON.stringify({
                     reply: aiReply,
@@ -142,8 +119,8 @@ const chatbotBrain = {
                 }));
             }
 
+            // [INSTANT BRIDGE]: Tự động đẩy data sang Form nếu AI xác nhận
             if (canUpload && window.injectUploadAction && activeImage) {
-                // [MENTOR FIX]: Gửi Object hoàn hảo cho UI Form
                 window.injectUploadAction({
                     image: activeImage,
                     score: score,
@@ -164,7 +141,6 @@ const chatbotBrain = {
 
     /**
      * SECURE UPLOAD: FINAL GATEWAY (INSTANT SYNC & OVERWRITE LOGIC)
-     * [MENTOR FIX]: Nhận metadata gộp từ UI (1 Member = 1 Doc).
      */
     async secureUpload(metadata) {
         if (!this.checkUploadQuota()) return false;
@@ -189,13 +165,13 @@ const chatbotBrain = {
                 return false;
             }
 
-            // Gói payload gửi đi
+            // Gói payload gửi đi (1 Member = 1 Doc qua UID Overwrite trên Server)
             const payload = {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
-                imageData: metadata.image, // Ảnh từ form
+                imageData: metadata.image, 
                 title: metadata.title,
                 description: metadata.desc,
                 hardware: metadata.hardware,
@@ -206,7 +182,6 @@ const chatbotBrain = {
                 artistLinks: metadata.artistLinks
             };
 
-            // Ghi đè tuyệt đối qua API Injection
             const response = await fetch('/api/masterpiece-injection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -237,25 +212,37 @@ const chatbotBrain = {
 /**
  * [INSTANT BRIDGE 2027]: KẾT NỐI CAMERA -> CHATBOT
  */
+// --- OPUS BRIDGE: CAMERA AI TO CHATBOT BRAIN SYNC (2027) ---
 window.sendToCurator = async (data) => {
-    window.currentImage = data.image; // Lưu vào biến toàn cục cho Chatbot UI lấy
-    if (window.stopAILens) window.stopAILens();
+    window.currentImage = data.image; 
 
+    // Mở Chat UI
     const chatWin = document.getElementById('chat-window');
-    if (chatWin) chatWin.style.display = 'flex';
+    if (chatWin) {
+        chatWin.style.display = 'flex';
+        chatWin.classList.add('animate-fade-in');
+    }
+
+    setTimeout(() => { if (window.stopAILens) window.stopAILens(); }, 600);
+
+    // --- MENTOR FIX: CHUẨN HÓA TỌA ĐỘ TRƯỚC KHI GỬI VÀO BRAIN ---
+    let coordsObj = null;
+    if (data.gps && data.gps !== "SIGNAL ENCRYPTED") {
+        const parts = data.gps.split(',');
+        coordsObj = { 
+            lat: parseFloat(parts[0]), 
+            lng: parseFloat(parts[1]) 
+        };
+    }
 
     const verifyId = `OPUS_VERIFIED_${data.time}`;
-    const analysisMsg = `[Opus Rate System]: Analyzing ${verifyId} captured at ${data.gps || "Unknown Coordinates"}.`;
+    const analysisMsg = `[Opus Rate System]: Analyzing ${verifyId}...`;
     
     if (window.sendMessage) {
-        await window.sendMessage(analysisMsg);
-        // Tự động cuộn xuống sau khi bridge
-        const msgBox = document.getElementById('chat-messages');
-        if(msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+        // Gửi tin nhắn kèm theo Object tọa độ đã được chuẩn hóa
+        await window.sendMessage(analysisMsg, coordsObj); 
     }
 };
-
-console.log("Opus 2027: Neural Brain Sync Completed.");
 
 // --- HỆ THỐNG PHÒNG THỦ OPUS 2027 (BẢO LƯU 100%) ---
 (function() {
@@ -266,6 +253,15 @@ console.log("Opus 2027: Neural Brain Sync Completed.");
             (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))
         ) return false;
     };
-    document.addEventListener('dragstart', e => { if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); });
-    document.addEventListener('keyup', e => { if(e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Opus Security: Screenshot is disabled.'); } });
+    document.addEventListener('dragstart', e => { 
+        if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); 
+    });
+    document.addEventListener('keyup', e => { 
+        if(e.key === 'PrintScreen') { 
+            navigator.clipboard.writeText(''); 
+            alert('Opus Security: Screenshot is disabled.'); 
+        } 
+    });
 })();
+
+console.log("Opus 2027: Neural Brain Sync Completed.");

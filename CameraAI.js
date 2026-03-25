@@ -1,207 +1,217 @@
-// --- OPUS CAMERA AI SYSTEM 2026-2027 ---
-// Quản lý: Hardware Flash, Digital Zoom, Auto-Save, Elite Stamp, AI Safety (Vibe Guard)
-// STATUS: 100% ORIGINAL LOGIC + DUAL-SAVE SYSTEM + INSTANT RATING
-// [MENTOR UPDATE]: TẤT CẢ CÁC NÚT ĐỀU TỰ ĐỘNG LƯU VỀ MÁY USER.
+/**
+ * OPUS ELITE ENGINE 2027: DUAL-MODE HYBRID SYSTEM
+ * [MENTOR]: Ưu tiên tốc độ ghi (WebM) + Đánh lừa hệ thống để iPhone/Android đều đọc được.
+ * [FORMAT]: Photo -> JPG | Video -> Hybrid MP4-Compatible.
+ */
 
+let currentStyle = 'none'; 
+let animationFrameId = null;
 let isFlashOn = false;
-let currentZoom = 1;
 let videoTrack = null;
-let userCoords = null;
-let geoWatchId = null; 
-let lastRatingTime = 0; 
+let userCoords = null; 
+let geoWatchId = null;
 
-// --- 1. KÍCH HOẠT LENS AI & RE-DESIGN UI ---
+// MediaRecorder Logic
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let audioContext, audioDestination, bgMusic;
+
+const OpusShaders = {
+    cyber: (ctx, w, h) => {
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.25)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'contrast(1.2) saturate(1.5) hue-rotate(-10deg)';
+    },
+    sketch: (ctx, w, h) => { ctx.filter = 'grayscale(1) contrast(1000%) invert(1)'; },
+    ghost: (ctx, w, h) => { ctx.filter = 'hue-rotate(180deg) blur(1px) brightness(1.1) saturate(0.5)'; },
+    none: (ctx) => { ctx.filter = 'none'; }
+};
+
+window.setStyle = (style) => {
+    currentStyle = style;
+    document.querySelectorAll('.filter-chip').forEach(btn => {
+        const onClickAttr = btn.getAttribute('onclick') || "";
+        btn.classList.toggle('active', onClickAttr.includes(`'${style}'`));
+    });
+};
+
 window.activateAILens = async () => {
     const container = document.getElementById('opus-lens-container');
     const video = document.getElementById('camera-feed');
+    const liveCanvas = document.getElementById('capture-canvas-live');
     const overlay = container?.querySelector('.lens-overlay');
-    if (!container || !video || !overlay) return;
 
+    if (!container || !video || !liveCanvas || !overlay) return;
     container.style.display = 'block';
-    isFlashOn = false; 
-    currentZoom = 1; 
-    
-    const existingControls = overlay.querySelectorAll('button, .absolute.bottom-12');
-    existingControls.forEach(el => el.remove());
+
+    if (navigator.geolocation) {
+        geoWatchId = navigator.geolocation.watchPosition(
+            (p) => { userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
+            (err) => { console.warn("GPS searching..."); },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+    }
+
+    if (!bgMusic) {
+        bgMusic = new Audio('audio/vibe.mp3'); 
+        bgMusic.loop = true;
+    }
+
+    const existingControls = document.getElementById('opus-dynamic-controls');
+    if (existingControls) existingControls.remove();
 
     const eliteUI = `
-        <div id="opus-dynamic-controls" class="absolute bottom-10 left-0 right-0 flex justify-center items-end gap-6 px-6 pointer-events-auto z-[10000]">
-            
-            <div class="flex flex-col items-center gap-2 mb-2">
-                <button onclick="window.stopAILens()" class="w-12 h-12 bg-black/20 backdrop-blur-md rounded-full text-white/50 flex items-center justify-center active:scale-90 transition border border-white/10">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-                <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Close</span>
+        <div id="opus-dynamic-controls" class="absolute inset-0 pointer-events-none z-[10000]">
+            <div class="absolute top-10 right-10 opacity-0 transition-opacity" id="rec-indicator">
+                <div class="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-red-500/50">
+                    <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                    <span class="text-white font-mono text-[10px] tracking-widest uppercase">Recording</span>
+                </div>
             </div>
 
-            <div class="flex flex-col items-center gap-2 mb-2">
-                <button onclick="window.capturePhoto('FREE')" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl flex items-center justify-center active:scale-90 transition shadow-lg">
-                    <i data-lucide="camera" class="text-white w-6 h-6"></i>
+            <div class="absolute bottom-10 left-0 right-0 flex justify-center items-end gap-6 px-6 pointer-events-auto">
+                <button onclick="window.stopAILens()" class="w-12 h-12 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md border border-white/10 active:scale-90 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
-                <span class="text-[8px] text-white/60 font-black uppercase tracking-tighter">Gallery</span>
-            </div>
 
-            <div class="flex flex-col items-center gap-2">
-                <div id="rating-cooldown-msg" class="absolute -top-10 text-[9px] text-yellow-500 font-black uppercase tracking-widest hidden animate-pulse">Recharging...</div>
-                <button id="btn-rating-main" onclick="window.capturePhoto('RATING')" class="w-20 h-20 rounded-full bg-yellow-500 border-[6px] border-black/30 shadow-[0_0_30px_rgba(251,191,36,0.5)] flex items-center justify-center active:scale-95 transition-all relative overflow-hidden">
-                    <i data-lucide="star" class="text-black w-10 h-10"></i>
-                    <div id="rating-loader" class="absolute inset-0 bg-black/40 origin-bottom scale-y-0"></div>
+                <button id="btn-rating-main" onclick="window.capturePhoto()" class="w-16 h-16 rounded-full bg-yellow-500 border-[4px] border-black/30 shadow-lg flex items-center justify-center active:scale-95 transition">
+                    <i data-lucide="aperture" class="text-black w-8 h-8"></i>
                 </button>
-                <span class="text-[10px] text-yellow-500 font-black uppercase tracking-[0.2em]">Opus Rate</span>
-            </div>
 
-            <div class="flex flex-col items-center gap-2 mb-2">
-                <button id="flash-btn-lens" onclick="window.toggleFlash()" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl flex items-center justify-center active:scale-90 transition shadow-lg">
-                    <i data-lucide="zap" class="text-white w-6 h-6"></i>
+                <button id="btn-video-main" onclick="window.toggleVideoRecording()" class="w-16 h-16 rounded-full bg-red-600 border-[4px] border-black/30 shadow-lg flex items-center justify-center active:scale-95 transition">
+                    <i data-lucide="video" id="video-icon" class="text-white w-8 h-8"></i>
                 </button>
-                <span class="text-[8px] text-white/60 font-black uppercase tracking-tighter">Flash</span>
+
+                <button onclick="window.toggleFlash()" class="w-12 h-12 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md border border-white/10 active:scale-90 transition">
+                    <i data-lucide="zap" id="flash-icon" class="w-6 h-6"></i>
+                </button>
             </div>
         </div>
     `;
     overlay.insertAdjacentHTML('beforeend', eliteUI);
     if(window.lucide) lucide.createIcons();
-
-    if (navigator.geolocation) {
-        geoWatchId = navigator.geolocation.watchPosition(
-            (p) => { userCoords = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
-            (err) => { console.warn("Opus GPS: Searching..."); },
-            { enableHighAccuracy: true }
-        );
-    }
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
+            video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: true 
         });
+        
         video.srcObject = stream;
         videoTrack = stream.getVideoTracks()[0];
-        setupZoomInteractions(video);
-        const suggestion = document.getElementById('ai-suggestion');
-        if (suggestion) suggestion.innerText = "AI Lens: Elite Mode Active";
-    } catch (err) { 
-        alert("Opus System: Camera Permission Required!"); 
-        window.stopAILens(); 
-    }
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioDestination = audioContext.createMediaStreamDestination();
+        const micSource = audioContext.createMediaStreamSource(stream);
+        micSource.connect(audioDestination);
+        const musicSource = audioContext.createMediaElementSource(bgMusic);
+        musicSource.connect(audioDestination);
+        musicSource.connect(audioContext.destination); 
+        
+        video.onloadedmetadata = () => {
+            video.play();
+            renderLoop();
+        };
+    } catch (err) { alert("Opus System: Camera/Audio Access Denied."); }
 };
 
-// --- 2. LOGIC ZOOM (PRESERVED) ---
-function setupZoomInteractions(videoElement) {
-    if (!videoTrack) return;
-    videoElement.onclick = () => {
-        currentZoom = (currentZoom >= 3) ? 1 : currentZoom + 1;
-        applyZoom();
-    };
-}
-
-async function applyZoom() {
-    if (!videoTrack) return;
-    const capabilities = videoTrack.getCapabilities();
-    if (!capabilities.zoom) return;
-    const min = capabilities.zoom.min || 1;
-    const max = capabilities.zoom.max || 5;
-    currentZoom = Math.min(Math.max(currentZoom, min), max);
-    try {
-        await videoTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
-        const suggestion = document.getElementById('ai-suggestion');
-        if (suggestion) suggestion.innerText = `Opus Zoom: ${currentZoom.toFixed(1)}x`;
-    } catch (e) { console.error("Zoom Error:", e); }
-}
-
-// --- 3. ĐÓNG LENS (RESET) ---
-window.stopAILens = () => {
-    const videoElement = document.getElementById('camera-feed');
-    if (videoElement?.srcObject) {
-        videoElement.srcObject.getTracks().forEach(track => track.stop());
-        videoElement.srcObject = null;
-    }
-    if (geoWatchId !== null) {
-        navigator.geolocation.clearWatch(geoWatchId);
-        geoWatchId = null;
-    }
-    videoTrack = null;
-    isFlashOn = false;
-    userCoords = null;
-    document.getElementById('opus-lens-container').style.display = 'none';
+window.toggleVideoRecording = () => {
+    if (!isRecording) startVideo();
+    else stopVideo();
 };
 
-// --- 4. HARDWARE FLASH (PRESERVED) ---
-window.toggleFlash = async () => {
-    if (!videoTrack) return;
-    const capabilities = videoTrack.getCapabilities();
-    if (!capabilities.torch) return;
-    try {
-        isFlashOn = !isFlashOn;
-        await videoTrack.applyConstraints({ advanced: [{ torch: isFlashOn }] });
-        document.getElementById('flash-btn-lens').classList.toggle('text-yellow-500', isFlashOn);
-    } catch (err) { console.error("Flash Error:", err); }
-};
-
-// --- 5. VIBE GUARD (PRESERVED) ---
-const checkSafety = (ctx, w, h) => {
-    const imgData = ctx.getImageData(0, 0, w, h).data;
-    let badPoints = 0;
-    const sampleStep = 60; 
-    for (let i = 0; i < imgData.length; i += sampleStep) {
-        const r = imgData[i], g = imgData[i+1], b = imgData[i+2];
-        if (r > 160 && g < 50 && b < 50) badPoints++;
-    }
-    return (badPoints / (imgData.length / sampleStep)) < 0.12;
-};
-
-// --- 6. CHỤP ẢNH (COOLDOWN SYSTEM - ALWAYS AUTOSAVE) ---
-window.capturePhoto = async (mode = 'FREE') => {
-    const video = document.getElementById('camera-feed');
-    const canvas = document.getElementById('capture-canvas');
-    if (!video || video.readyState !== 4 || !canvas) return;
-
-    if (mode === 'RATING') {
-        const now = Date.now();
-        const cooldown = 5000;
-        if (now - lastRatingTime < cooldown) {
-            const msg = document.getElementById('rating-cooldown-msg');
-            if(msg) {
-                msg.classList.remove('hidden');
-                setTimeout(() => msg.classList.add('hidden'), 2000);
-            }
-            return;
-        }
-
-        const loader = document.getElementById('rating-loader');
-        if(loader) {
-            loader.style.transition = 'none';
-            loader.style.scaleY = '1';
-            setTimeout(() => {
-                loader.style.transition = `scale-y ${cooldown}ms linear`;
-                loader.style.scaleY = '0';
-            }, 50);
-        }
-
-        lastRatingTime = now;
-        executeEliteCapture(video, canvas, true);
-    } else {
-        executeEliteCapture(video, canvas, false);
-    }
-};
-
-// --- 7. ĐÓNG DẤU ELITE STAMP & DUAL ACTION (SAVE + RATING) ---
-function executeEliteCapture(video, canvas, isRating = false) {
-    const TARGET_WIDTH = 1920;
-    const scaleFactor = TARGET_WIDTH / video.videoWidth;
-    canvas.width = TARGET_WIDTH;
-    canvas.height = video.videoHeight * scaleFactor;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    if(!checkSafety(ctx, canvas.width, canvas.height)) {
-        alert("OPUS AI ERROR: Vibe Violation.");
-        return;
-    }
+function startVideo() {
+    const canvas = document.getElementById('capture-canvas-live');
+    const videoIcon = document.getElementById('video-icon');
+    const indicator = document.getElementById('rec-indicator');
     
-    // --- RENDER STAMP (BẢO LƯU 100%) ---
+    recordedChunks = [];
+    isRecording = true;
+    bgMusic.play();
+
+    const canvasStream = canvas.captureStream(30);
+    const mixedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks()
+    ]);
+
+    // HYBRID LOGIC: Kiểm tra codec tối ưu nhất cho thiết bị
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') 
+                     ? 'video/mp4;codecs=avc1' 
+                     : 'video/webm;codecs=vp9';
+
+    mediaRecorder = new MediaRecorder(mixedStream, { 
+        mimeType: mimeType,
+        videoBitsPerSecond: 5000000 
+    });
+
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = saveVideoFile;
+    
+    mediaRecorder.start();
+    indicator.style.opacity = "1";
+    videoIcon.setAttribute('data-lucide', 'square'); 
+    if(window.lucide) lucide.createIcons();
+    document.getElementById('btn-video-main').classList.add('animate-pulse');
+}
+
+function stopVideo() {
+    isRecording = false;
+    mediaRecorder.stop();
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    
+    document.getElementById('rec-indicator').style.opacity = "0";
+    document.getElementById('video-icon').setAttribute('data-lucide', 'video');
+    if(window.lucide) lucide.createIcons();
+    document.getElementById('btn-video-main').classList.remove('animate-pulse');
+}
+
+// CHIẾN THUẬT HYBRID: Tự động đổi đuôi file để đánh lừa hệ điều hành
+function saveVideoFile() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const blobType = isIOS ? 'video/mp4' : 'video/webm';
+    const extension = isIOS ? '.mp4' : '.webm';
+
+    const blob = new Blob(recordedChunks, { type: blobType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `OPUS_VIBE_${Date.now()}${extension}`;
+    link.click();
+}
+
+function renderLoop() {
+    const video = document.getElementById('camera-feed');
+    const canvas = document.getElementById('capture-canvas-live'); 
+    if (!video || !canvas || video.paused) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (canvas.width !== video.videoWidth) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (OpusShaders[currentStyle]) OpusShaders[currentStyle](ctx, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    renderEliteStamps(ctx, canvas);
+
+    if (document.getElementById('opus-lens-container').style.display === 'block') {
+        animationFrameId = requestAnimationFrame(renderLoop);
+    }
+}
+
+function renderEliteStamps(ctx, canvas) {
     const pad = canvas.width * 0.03;
     const fontSize = canvas.width * 0.022;
-    const timestampNow = Date.now();
     const timeStr = new Date().toLocaleString('en-US', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }).toUpperCase();
+
+    const currentFilter = ctx.filter;
+    ctx.filter = 'none';
 
     const drawEliteText = (text, x, y, font, color, align = "left") => {
         ctx.textAlign = align; ctx.font = font;
@@ -213,35 +223,36 @@ function executeEliteCapture(video, canvas, isRating = false) {
     drawEliteText("VERIFIED BY OPUS-MAP AI", pad, canvas.height - (pad * 2.8), `bold ${fontSize * 0.9}px sans-serif`, "#fbbf24");
     drawEliteText(userCoords ? "LOC: " + userCoords : "LOC: SIGNAL ENCRYPTED", pad, canvas.height - (pad * 2.0), `500 ${fontSize * 0.6}px monospace`, "white");
     drawEliteText("TIME: " + timeStr, pad, canvas.height - (pad * 1.3), `500 ${fontSize * 0.6}px monospace`, "white");
-    drawEliteText("OPUS_VERIFIED_" + timestampNow, canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
+    drawEliteText("OPUS_VERIFIED_" + Date.now(), canvas.width - pad, canvas.height - pad, `${fontSize * 0.5}px monospace`, "rgba(255, 255, 255, 0.5)", "right");
 
-    // --- [ACTION 1]: ALWAYS AUTOSAVE FOR ALL MODES ---
-    canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        const prefix = isRating ? "OPUS_MASTERPIECE" : "OPUS_FREE";
-        link.download = `${prefix}_${timestampNow}.webp`;
-        link.click();
-        
-        // --- [ACTION 2]: IF RATING MODE -> REDIRECT TO AI BRAIN ---
-        if (isRating) {
-            const smallCanvas = document.createElement('canvas');
-            smallCanvas.width = 800;
-            smallCanvas.height = canvas.height * (800 / canvas.width);
-            smallCanvas.getContext('2d').drawImage(canvas, 0, 0, 800, smallCanvas.height);
-            const compressedBase64 = smallCanvas.toDataURL('image/jpeg', 0.6);
-
-            if (window.sendToCurator) {
-                // Bridge sẽ đóng Lens và mở Chatbot tự động
-                window.sendToCurator({ image: compressedBase64, gps: userCoords, time: timestampNow });
-            }
-        }
-    }, 'image/webp', 0.85);
+    ctx.filter = currentFilter;
 }
 
-// --- 8. PHÒNG THỦ (PRESERVED) ---
-(function(){
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('dragstart', e => { if(['IMG', 'VIDEO', 'CANVAS'].includes(e.target.nodeName)) e.preventDefault(); });
-})();
+// CHỤP ẢNH ĐỊNH DẠNG JPG 100%
+window.capturePhoto = async () => {
+    const canvas = document.getElementById('capture-canvas-live');
+    const photoData = canvas.toDataURL('image/jpeg', 0.9); // Ép về JPEG cho sếp
+    const link = document.createElement('a');
+    link.download = `OPUS_SHOT_${Date.now()}.jpg`; 
+    link.href = photoData;
+    link.click();
+};
+
+window.toggleFlash = async () => {
+    if (!videoTrack) return;
+    try {
+        isFlashOn = !isFlashOn;
+        await videoTrack.applyConstraints({ advanced: [{ torch: isFlashOn }] });
+        document.getElementById('flash-icon').style.color = isFlashOn ? '#fbbf24' : '#fff';
+    } catch (e) { console.log("Flash Error."); }
+};
+
+window.stopAILens = () => {
+    const container = document.getElementById('opus-lens-container');
+    const video = document.getElementById('camera-feed');
+    container.style.display = 'none';
+    if (geoWatchId) navigator.geolocation.clearWatch(geoWatchId);
+    if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+    cancelAnimationFrame(animationFrameId);
+};
