@@ -126,16 +126,20 @@
         <div class="grid-line-v" style="left: 33.33%"></div><div class="grid-line-v" style="left: 66.66%"></div>
         
         <div class="absolute top-10 left-0 right-0 text-center">
-            <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 title-breath">Opus Elite Lens</p>
+            <p class="text-yellow-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1 title-breath">Opus-Map Elite Lens</p>
             <p id="ai-suggestion" class="text-white/60 text-[8px] uppercase tracking-widest">Neural Style Transfer Active</p>
         </div>
 
-        <div class="absolute top-28 left-0 right-0 flex justify-center gap-2 pointer-events-auto">
-            <button onclick="window.setStyle('none')" class="filter-chip active">Raw</button>
-            <button onclick="window.setStyle('cyber')" class="filter-chip">Cyber</button>
-            <button onclick="window.setStyle('sketch')" class="filter-chip">Sketch</button>
-            <button onclick="window.setStyle('ghost')" class="filter-chip">Spirit</button>
-        </div>
+       <div class="absolute top-28 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto scrollbar-hide pointer-events-auto">
+    <button onclick="window.setStyle('none')" class="filter-chip active">Raw</button>
+    <button onclick="window.setStyle('cyber')" class="filter-chip border-magenta-500/50">Cyber</button>
+    <button onclick="window.setStyle('spirit')" class="filter-chip border-white/50">Spirit</button>
+    <button onclick="window.setStyle('infrared')" class="filter-chip border-cyan-500/50">Infrared</button>
+    <button onclick="window.setStyle('golden')" class="filter-chip border-orange-500/50 text-orange-400">Golden</button>
+    <button onclick="window.setStyle('void')" class="filter-chip border-green-900/50 text-green-700">Void</button>
+    <button onclick="window.setStyle('heaven')" class="filter-chip border-blue-200/50 text-blue-200">Heaven</button>
+    <button onclick="window.setStyle('acid')" class="filter-chip border-yellow-400/50 text-yellow-400 animate-pulse">Acid</button>
+</div>
     </div>
 
     <canvas id="capture-canvas" class="hidden"></canvas>
@@ -184,25 +188,9 @@
                     <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Gallery Curator</span>
                     <div id="bot-instruction" class="mt-2 space-y-4 border-b border-white/5 pb-5">
     
-    <div class="flex flex-col gap-1">
-        <p class="text-[10px] font-black text-white uppercase tracking-widest">
-            Step 1: Tap <span class="text-yellow-500">LENS</span> to start
-        </p>
-        <p class="text-[9px] text-white/50 leading-relaxed tracking-tight">
-            • <b class="text-white/80">Gallery:</b> Unlimited shots with Verified Stamps. <br>
-            • <b class="text-yellow-500/80 text-[8px]">Opus Rate:</b> 1 shot, 1 review & rating by Curator.
-        </p>
-    </div>
+    
 
-    <div class="flex flex-col gap-1">
-        <p class="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
-            Step 2: Go Global (6/10+)
-        </p>
-        <p class="text-[9px] text-white/50 leading-relaxed tracking-tight">
-            • Score <b class="text-white">6/10+</b> grants the <b class="text-white">RIGHT</b> to upload to Opus Map. <br>
-            • 1 Spot per User. New upload <b class="text-cyan-400">replaces</b> your previous one.
-        </p>
-    </div>
+    
 
 </div>
                 </div>
@@ -235,6 +223,8 @@
 <script src="Haunted.js"></script>
 <script src="chatbot_brain.js"></script> 
 <script src="chatbot_ui.js"></script>
+<script src="CameraMusic.js"></script>
+<script src="CameraFX.js"></script>
 <script src="CameraAI.js"></script>
 
     <script>
