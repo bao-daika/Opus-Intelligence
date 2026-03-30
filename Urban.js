@@ -1,21 +1,40 @@
-// --- OPUS DATA: URBAN (2026-2027 GLOBAL EDITION) ---
-// Mentor Opus: Synchronized with config.js dataKey: "Urban"
+/**
+ * OPUS DATA: URBAN (2027 LENS-SYNC & MINING EDITION)
+ * [CONCEPT]: Lens-Specific Mining.
+ * [LOGIC]: One location, multiple parallel dimensions (Gold/Silver/Void).
+ * [VIBE]: Invisible boxes are always there; Lens reveals them.
+ */
 
 const urbanSpots = [
     {
+        id: "admin-command-center",
+        catId: "urban",
+        category: "Admin",
+        name: "Opus Command Center",
+        lat: 43.65547, 
+        lng: -79.40107,
+        isAdmin: true,
+        // --- MULTI-VAULT ---
+        goldAmount: 999999,
+        silverAmount: 888888,
+        voidAmount: 777777,
+        images: ["Urban/Admin_HQ.jpg"],
+        audioUrl: "Audio/Admin.mp3",
+        description: "TRUNG TÂM TỐI CAO: Toàn quyền truy xuất 3 loại tài nguyên."
+    },
+    {
         id: "urban-toronto-cntower",
         catId: "urban",
-        category: "Urban", // Đã đồng bộ với config.js
+        category: "Urban",
         name: "CN Tower Twilight",
         lat: 43.642566, 
         lng: -79.387054,
-        images: [
-            "Urban/CN_Tower1.jpg",
-        ],
+        goldAmount: 5000,
+        silverAmount: 15000,
+        voidAmount: 0,
+        images: ["Urban/CN_Tower1.jpg"],
         audioUrl: "Audio/Toronto.mp3",
-        camera: "Sony A7R V | FE 16-35mm f/2.8 GM II",
-        price: "Not for sale",
-        Description: "Completed in 1976 by Canadian National, this 553.3m engineering marvel held the world's tallest title for over three decades. Beyond its telecommunication role, it's designed to withstand an 8.5 magnitude earthquake. **Secret:** Hidden 351m above ground is the 'Wine Cellar in the Sky,' the world's highest wine cellar with a 9,000-bottle capacity. This shot captures the moment its 16-million-color LED system synchronizes with the Toronto twilight."
+        description: "Completed in 1976. **Secret:** Hidden 351m above ground is the 'Wine Cellar in the Sky.' This shot captures the 16-million-color LED system synchronizing with the Toronto twilight."
     },
     {
         id: "urban-paris-eiffel",
@@ -24,13 +43,12 @@ const urbanSpots = [
         name: "Eiffel Tower Majesty",
         lat: 48.858370, 
         lng: 2.294481,
-        images: [
-            "Urban/EiffelTower.jpg",
-        ],
+        goldAmount: 8500,
+        silverAmount: 25000,
+        voidAmount: 0,
+        images: ["Urban/EiffelTower.jpg"],
         audioUrl: "Audio/France.mp3",
-        camera: "Fujifilm GFX 100 II | GF 32-64mm f/4",
-        price: "Not for sale",
-        Description: "Erected for the 1889 World's Fair by Gustave Eiffel, this 330m iron lattice was initially loathed by Parisian artists as a 'giant smokestack.' **Secret:** Gustave Eiffel maintained a private apartment at the peak to host elite guests like Thomas Edison; the space remains preserved with original wax figures. This medium-format capture highlights the intricate symmetry of 18,000 iron parts bathed in the legendary 'Heure Bleue' of Paris."
+        description: "Erected for the 1889 World's Fair. **Secret:** Gustave Eiffel maintained a private apartment at the peak. Bathed in the legendary 'Heure Bleue' of Paris."
     },
     {
         id: "urban-mexico-angel",
@@ -39,13 +57,12 @@ const urbanSpots = [
         name: "Guardian of Mexico",
         lat: 19.427021, 
         lng: -99.167665,
-        images: [
-            "Urban/Mexico.jpg"
-        ],
+        goldAmount: 3200,
+        silverAmount: 12000,
+        voidAmount: 0,
+        images: ["Urban/Mexico.jpg"],
         audioUrl: "Audio/Mexico.mp3",
-        camera: "Sony A7R V | FE 24-70mm f/2.8 GM II",
-        price: "Not for sale",
-        Description: "The 'Angel of Independence' was inaugurated in 1910 to mark the centennial of Mexico's War of Independence. The 24k gold-plated bronze Nike (Winged Victory) stands atop a 45m column. **Secret:** The base serves as a mausoleum for the nation's most revered revolutionary heroes. This elite perspective showcases the golden shine against the modern skyline of Paseo de la Reforma, symbolizing the eternal watch over the city."
+        description: "The 'Angel of Independence' (1910). The 24k gold-plated bronze Nike stands atop a 45m column. **Secret:** The base serves as a mausoleum for revolutionary heroes."
     },
     {
         id: "urban-russia-basil",
@@ -54,12 +71,12 @@ const urbanSpots = [
         name: "St. Basil's Midnight",
         lat: 55.752523, 
         lng: 37.623088,
-        images: [
-            "Urban/Russia.jpg"
-        ],        audioUrl: "Audio/Russia.mp3",
-        camera: "Hasselblad X2D 100C | XCD 38mm f/2.5",
-        price: "Not for sale",
-        Description: "Commissioned by Ivan the Terrible in 1555, this Red Square icon features nine vibrant onion domes, each representing a separate chapel. Its design is intended to resemble the flames of a bonfire rising into the sky. **Secret:** Legend states that Ivan blinded the architect, Postnik Yakovlev, so he could never recreate its beauty elsewhere. Captured at midnight, the high-resolution sensor reveals the surreal textures and 'frozen' history of the Kremlin's neighbor."
+        goldAmount: 12000,
+        silverAmount: 40000,
+        voidAmount: 0,
+        images: ["Urban/Russia.jpg"],
+        audioUrl: "Audio/Russia.mp3",
+        description: "Commissioned by Ivan the Terrible in 1555. Nine vibrant onion domes representing the flames of a bonfire. **Secret:** Legend states the architect was blinded so he could never recreate its beauty."
     },
     {
         id: "urban-china-shanghai",
@@ -68,13 +85,12 @@ const urbanSpots = [
         name: "Shanghai Pulse",
         lat: 31.235529, 
         lng: 121.501154, 
-        images: [
-            "Urban/China.jpg"
-        ],
+        goldAmount: 6700,
+        silverAmount: 22000,
+        voidAmount: 0,
+        images: ["Urban/China.jpg"],
         audioUrl: "Audio/China.mp3",
-        camera: "Fujifilm GFX 100 II | GF 23mm f/4 R LM WR",
-        price: "Not for sale",
-        Description: "The Pudong district represents the hyper-growth of 21st-century China. The centerpiece, Shanghai Tower (632m), features a unique 120-degree twist to mitigate typhoon-force winds. **Secret:** This aerodynamic spiral saved $58 million in structural steel costs during construction. This masterwork captures the 'Neon Pulse' of the city, where futuristic architecture meets the ancient Huangpu River in a Cyberpunk-inspired aesthetic."
+        description: "Shanghai Tower (632m) features a unique 120-degree twist. **Secret:** This aerodynamic spiral saved $58 million in structural steel. Capturing the 'Neon Pulse' of the city."
     },
     {
         id: "urban-iran-mosque",
@@ -83,14 +99,56 @@ const urbanSpots = [
         name: "Kaleidoscope of Faith",
         lat: 29.608300, 
         lng: 52.548400,
-        images: [
-            "Urban/Iran.jpg"
-        ],
+        goldAmount: 4500,
+        silverAmount: 18000,
+        voidAmount: 0,
+        images: ["Urban/Iran.jpg"],
         audioUrl: "Audio/Iran.mp3",
-        camera: "Leica SL3 | Vario-Elmarit-SL 24-70mm f/2.8",
-        price: "Not for sale",
-        Description: "The Nasir al-Mulk Mosque (Pink Mosque) in Shiraz, completed in 1888, is a masterclass in Persian geometry and light. **Secret:** The stained glass is strategically placed so that morning sunlight transforms the prayer hall into a massive kaleidoscope, revealing hidden mathematical patterns in the tilework. This shot captures the fleeting moment of peak illumination, turning a place of worship into a vivid spectrum of color."
+        description: "The Nasir al-Mulk Mosque (Pink Mosque). **Secret:** Morning sunlight transforms the prayer hall into a massive kaleidoscope. Captures the fleeting moment of peak illumination."
     }
 ];
 
-console.log("Opus System: Global 2027 Urban Data Assets Synchronized with AI Logic.");
+/**
+ * --- LENS-DRIVEN DETECTOR ---
+ * Xác định mỏ tài nguyên khi người dùng di chuyển gần.
+ */
+window.getNearbyUrbanSpot = function(uLat, uLng) {
+    const threshold = 0.0004; // ~40m
+    return urbanSpots.find(s => 
+        Math.abs(s.lat - uLat) < threshold && 
+        Math.abs(s.lng - uLng) < threshold
+    ) || null;
+};
+
+/**
+ * --- BRIDGE LOGIC: SYNC WITH GLOBAL STATE ---
+ * Đồng bộ hóa dữ liệu từ Map Layer sang Camera AI (Dựa trên Lens đang bật).
+ */
+function syncMapToCamera(userLat, userLng) {
+    const spot = window.getNearbyUrbanSpot(userLat, userLng);
+    if (spot) {
+        window.isNearGift = true;
+        window.currentSpot = spot; 
+        const activeLens = window.currentStyle || 'none';
+        let matched = false;
+
+        // Ưu tiên tài nguyên khớp với Lens sếp đang chọn
+        if (activeLens === 'golden' && spot.goldAmount > 0) { window.giftType = 'gold'; matched = true; } 
+        else if (activeLens === 'silver' && spot.silverAmount > 0) { window.giftType = 'silver'; matched = true; } 
+        else if (activeLens === 'void' && spot.voidAmount > 0) { window.giftType = 'void'; matched = true; }
+
+        // Nếu không khớp Lens, dùng tài nguyên mặc định hiện có
+        if (!matched) {
+            if (spot.goldAmount > 0) window.giftType = 'gold';
+            else if (spot.silverAmount > 0) window.giftType = 'silver';
+            else if (spot.voidAmount > 0) window.giftType = 'void';
+            else window.giftType = 'none';
+        }
+    } else {
+        window.isNearGift = false;
+        window.currentSpot = null;
+        window.giftType = 'none';
+    }
+}
+
+console.log("Opus System: Urban Data Cleaned & Mining Logic Synced.");
