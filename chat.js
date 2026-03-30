@@ -1,4 +1,6 @@
-// --- OPUS INTELLIGENCE: PURE AI CORE (SYNC 2027 - STAMP VERIFIED) ---
+// --- OPUS INTELLIGENCE: PURE AI CORE (SYNC 2027 - INSTANT RATING) ---
+// Quản lý: Instant Rating, Global Lock, Stamp Authentication.
+// [MENTOR UPDATE]: ĐÃ XÓA BỎ HOÀN TOÀN QUY TẮC 5 PHÚT. 100% INSTANT BRIDGE.
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ reply: "Access Denied, Boss!" });
@@ -6,8 +8,8 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(500).json({ reply: "Missing Gemini API Key, Master!" });
 
-    // MENTOR UPDATE: Nhận thêm clientTimestamp để đối soát kép
-    const { message, attachedImage, userLocation, clientTimestamp } = req.body; 
+    // --- 1. NHẬN DỮ LIỆU TỪ CHATBOT_BRAIN (BRIDGE DỮ LIỆU TỨC THỜI) ---
+    const { message, attachedImage, userLocation, isLensMode } = req.body; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
 
     const getErrorReply = (type) => {
@@ -15,56 +17,39 @@ export default async function handler(req, res) {
             busy: "System saturated. Standby, Boss.",
             no_geo: "Elite shot, but GPS missing. Global Map upload locked.",
             failure: "Neural Link fragmented. Reconnecting...",
-            safety: "Opus Security: Prohibited content blocked.",
-            expired: "Time window closed. Evidence is no longer fresh."
+            safety: "Opus Security: Prohibited content blocked."
         };
         return errors[type] || errors.failure;
     };
 
-    // --- OPUS ELITE SYSTEM INSTRUCTION 2027 (FINAL SYSTEM - GLOBAL LOCK) ---
-    // Mentor Note: CẤM XÓA, CẤM SỬA. 100% Sync with menuConfig & chatbot_brain.js
+    // --- 2. OPUS ELITE SYSTEM INSTRUCTION (SYNCED 100% WITH CAMERA-AI STAMPS) ---
+    // Mentor Note: Đã xóa bỏ Elite Window logic để khớp với vibe "Chụp là Chấm".
     const systemInstruction = `
     YOU ARE OPUS VISIONARY AI. ROLE: GLOBAL ELITE ANTI-FRAUD JUDGE AND PARANORMAL ANALYST.
 
-    STRICT AUTHENTICATION PROTOCOL MATCHING CAMERA-AI.JS:
+    STRICT AUTHENTICATION PROTOCOL (CAMERA-AI.JS SYNC):
     1. MANDATORY STAMP CHECK: Detect "CAPTURED BY HUMAN", "VERIFIED BY OPUS-MAP AI", "LOC:", and "OPUS_VERIFIED_".
-    2. 5-MINUTE ELITE WINDOW: Extract Unix ID Line 5. Compare with Current Time: ${Date.now()}. 
-       - IF Current - ID > 300000ms: STATUS = EXPIRED Disable Go Global. 
-    3. TIME-SYNC VALIDATION: Extract Human-readable Time Line 4 and Unix ID Line 5. They MUST match mathematically.
-    4. GPS EXTRACTION: Extract Latitude and Longitude from the "LOC:" stamp. 
-       - IF NO COORDINATES DETECTED: STATUS = NO_LOCATION Disable Go Global.
-    5. ANTI-FRAUD: Reject Moire patterns or missing 0.15 text stroke. 
+    2. GPS EXTRACTION: Extract Latitude and Longitude from the "LOC:" stamp. 
+       - IF NO COORDINATES DETECTED: STATUS = NO_LOCATION.
+    3. INSTANT TRUST: This is an instant stream from Opus Rate Lens. No time window checks required.
+    4. ANTI-FRAUD: Reject Moire patterns or missing 0.15 text stroke. 
 
-    STRICT OPERATIONAL PROTOCOLS:
-    - DATA FORMAT MANDATORY FOR UI PARSING MATCHING MENUCONFIG:
-      CATEGORY: [Urban / Nature / Aliens / Haunted]
-      SCORE: [X/10] Always provide a score for user feedback
-      LOCATION: [Latitude, Longitude or "MISSING"]
-      STATUS: [AUTHENTIC / EXPIRED / NO_LOCATION / FRAUD]
+    STRICT DATA FORMAT FOR UI PARSING:
+    CATEGORY: [Urban / Nature / Aliens / Haunted]
+    SCORE: [X/10] 
+    LOCATION: [Lat, Lng or "MISSING"]
+    STATUS: [AUTHENTIC / NO_LOCATION / FRAUD]
 
-    - COMMUNICATION: 
-      1. Use "Boss" to address the user.
-      2. Critique Comments: Max 35 words. Use the user's language.
-      3. Explain clearly in English for warnings: You get a Score for your skills, but Go Global is LOCKED unless Status is AUTHENTIC.
-      4. Keep the DATA FORMAT block above in English.
-
-    TECHNICAL CRITIQUE AND CATEGORY LOGIC:
-    - CATEGORY [Aliens]: Analyze extraterrestrial entities and UFO crafts. Evaluate anti-gravity propulsion, trans-medium blur, and plasma glows.
-    - CATEGORY [Haunted]: Detect spectral noise, shadow anomalies, ectoplasm, and eerie atmosphere.
-    - CATEGORY [Urban]: Identify architecture, streets, and human infrastructure.
-    - CATEGORY [Nature]: Identify vegetation, mountains, rivers, and natural landscapes.
-
-    FIXED RESPONSE PROTOCOL THE OPUS CYCLE
-    If user asks about rules requirements, explain these EXACT 4 steps in their language:
-    - STEP 1 CAPTURE: Use "Opus-Map Lens" to capture with mandatory stamps and save it.
-    - STEP 2 RATING: Upload to "Gallery Curator" Chatbox. Everyone gets a Score to check their skills!
-    - STEP 3 GLOBAL REQUIREMENTS: To "Go Global", you need Score 6/10+, Valid GPS Stamps, and must be within the 5-minute window.
-    - STEP 4 DEPLOY: If Requirements aren't met, you only get the Score, but the Global Map will REJECT the entry.
-    - Conclusion: "Only the fastest, the best, and the most precise go global, Boss!"
+    COMMUNICATION: 
+    - Always address user as "Boss". 
+    - Critique Comments: Max 35 words. Use the user's language.
+    - Status AUTHENTIC + Score 6/10+ = Global Map Access Granted.
+    - Keep the DATA FORMAT block above in English.
 `;
 
     try {
-        const parts = [{ text: `${systemInstruction}\n\nUser Input: ${message || "Authenticate and analyze."}` }];
+        // --- 3. PAYLOAD PROCESSING ---
+        const parts = [{ text: `${systemInstruction}\n\nUser Input: ${message || "Authenticate and analyze masterpiece."}` }];
 
         if (attachedImage && attachedImage.includes('base64,')) {
             parts.push({
@@ -93,17 +78,10 @@ export default async function handler(req, res) {
 
         const aiReply = data.candidates[0].content.parts[0].text;
 
-        // --- 3. BACKEND DATA SYNC & 5-MINUTE KILL SWITCH (OPTIMIZED BY MENTOR) ---
+        // --- 4. HẬU XỬ LÝ DỮ LIỆU ---
         const scoreMatch = aiReply.match(/SCORE:\s*(\d+(\.\d+)?)\/10/i);
         const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
         
-        // MENTOR FIX: Ưu tiên clientTimestamp từ body để chống lỗi AI đọc thiếu mã số
-        const timestampInAI = aiReply.match(/OPUS_VERIFIED_(\d+)/);
-        const photoTimestamp = clientTimestamp ? parseInt(clientTimestamp) : (timestampInAI ? parseInt(timestampInAI[1]) : 0);
-        
-        const currentTime = Date.now();
-        const fiveMinutesInMs = 300000;
-
         const aiTextUpper = aiReply.toUpperCase();
         
         let finalCategory = "Urban";
@@ -112,21 +90,15 @@ export default async function handler(req, res) {
         else if (aiTextUpper.includes("NATURE")) finalCategory = "Nature";
 
         let finalReply = aiReply;
-        let canUpload = false;
-
+        
         const isAuthentic = aiTextUpper.includes("STATUS: AUTHENTIC");
         const hasLocation = aiTextUpper.includes("LOCATION:") && !aiTextUpper.includes("MISSING");
 
-        if (isAuthentic && score >= 6 && hasLocation) {
-            // Kiểm tra độ tươi dựa trên Timestamp đã được đồng bộ
-            if (photoTimestamp > 0 && (currentTime - photoTimestamp > fiveMinutesInMs)) {
-                canUpload = false;
-                const delayMins = ((currentTime - photoTimestamp) / 60000).toFixed(1);
-                finalReply += `\n\n[OPUS SECURITY]: EXPIRED. Captured ${delayMins}m ago. 5-minute window closed. Go Global disabled, Boss!`;
-            } else {
-                canUpload = true; 
-            }
-        } else if (score >= 6 && !hasLocation) {
+        // --- 5. QUYẾT ĐỊNH GO GLOBAL (INSTANT APPROVAL) ---
+        // Boss, nếu ảnh Authentic, điểm >= 6 và có tọa độ là em cho canUpload = true ngay.
+        const canUpload = isAuthentic && score >= 6 && hasLocation;
+
+        if (score >= 6 && !hasLocation) {
             finalReply += `\n\n[OPUS SECURITY]: ${getErrorReply('no_geo')}`;
         }
 
@@ -134,7 +106,7 @@ export default async function handler(req, res) {
             reply: finalReply, 
             score: score, 
             category: finalCategory,
-            canUpload: canUpload
+            canUpload: canUpload 
         });
 
     } catch (error) {
